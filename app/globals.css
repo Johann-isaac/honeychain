@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #fffaf0;
+  --foreground: #241d14;
+
+  --card: #ffffff;
+  --card-foreground: #241d14;
+
+  --muted: #f4ecdc;
+  --muted-foreground: #6b5f4d;
+
+  --border: #e8dcc4;
+  --input: #e8dcc4;
+  --ring: #d99a2b;
+
+  --primary: #d99a2b;
+  --primary-foreground: #241d14;
+  --primary-dark: #b87c1a;
+
+  --secondary: #4f7942;
+  --secondary-foreground: #ffffff;
+
+  --accent: #fbe8bf;
+  --accent-foreground: #6b4a12;
+
+  --success: #3f8b4c;
+  --warning: #d98c1f;
+  --destructive: #c9432f;
+
+  --charcoal: #241d14;
+  --cream: #fffaf0;
+  --honey: #e8a33d;
+  --honey-dark: #b87c1a;
+  --nature: #4f7942;
+
+  --radius: 0.9rem;
+}
+
+.dark {
+  --background: #17130e;
+  --foreground: #f6ecd9;
+
+  --card: #221b13;
+  --card-foreground: #f6ecd9;
+
+  --muted: #2a2117;
+  --muted-foreground: #b8a98c;
+
+  --border: #382c1e;
+  --input: #382c1e;
+  --ring: #e8a33d;
+
+  --primary: #e8a33d;
+  --primary-foreground: #17130e;
+  --primary-dark: #f2b705;
+
+  --secondary: #6b8e4e;
+  --secondary-foreground: #101a0c;
+
+  --accent: #3a2c14;
+  --accent-foreground: #f2c877;
+
+  --success: #5cb86b;
+  --warning: #e8a33d;
+  --destructive: #e0604a;
+
+  --charcoal: #17130e;
+  --cream: #f6ecd9;
+  --honey: #e8a33d;
+  --honey-dark: #f2b705;
+  --nature: #6b8e4e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-charcoal: var(--charcoal);
+  --color-cream: var(--cream);
+  --color-honey: var(--honey);
+  --color-honey-dark: var(--honey-dark);
+  --color-nature: var(--nature);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-sm: calc(var(--radius) - 0.4rem);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+  }
+
+  .bg-honeycomb {
+    background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--color-honey) 18%, transparent) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+
+  .glass {
+    background: color-mix(in oklab, var(--color-card) 72%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .card-shadow {
+    box-shadow: 0 1px 2px rgba(36, 29, 20, 0.04), 0 8px 24px -12px rgba(36, 29, 20, 0.16);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 999px;
+  }
+
+  .input {
+    width: 100%;
+    height: 2.5rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-card);
+    padding: 0 0.85rem;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .input:focus {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-primary) 40%, transparent);
+  }
+}
+
+@keyframes hc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: hc-fade-up 0.6s ease both;
+}
+
+@keyframes hc-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-honey) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px color-mix(in oklab, var(--color-honey) 0%, transparent);
+  }
+}
+
+.animate-pulse-ring {
+  animation: hc-pulse-ring 1.8s ease-out infinite;
+}
+
+@keyframes hc-flow {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-flow-line {
+  stroke-dasharray: 6 6;
+  stroke-dashoffset: 240;
+  animation: hc-flow 6s linear infinite;
+}

@@ -1,0 +1,217 @@
+// HoneyChain data model.
+//
+// This schema documents the production data model described in the project
+// spec. The running prototype uses an in-memory mock data layer
+// (lib/db.ts) that implements the same shapes, so the app works fully in
+// demo mode without a provisioned database. Point DATABASE_URL at a real
+// Postgres instance and swap lib/db.ts's implementation for `@prisma/client`
+// calls to go live — the API routes and types were written against the
+// same interfaces so that swap does not ripple into the rest of the app.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BEEKEEPER
+  LAB_TECHNICIAN
+  CONSUMER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      UserRole
+  createdAt DateTime @default(now())
+
+  beekeeper Beekeeper?
+}
+
+enum RegistrationStatus {
+  VERIFIED
+  PENDING
+  SUSPENDED
+}
+
+model Beekeeper {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id])
+  beekeeperCode       String             @unique
+  name                String
+  region              String
+  registrationStatus  RegistrationStatus @default(PENDING)
+  phone               String?
+  joinedDate          DateTime           @default(now())
+
+  hives   Hive[]
+  batches HoneyBatch[]
+}
+
+enum HiveStatus {
+  HEALTHY
+  ATTENTION
+  CRITICAL
+}
+
+enum QueenStatus {
+  ACTIVE
+  AGING
+  UNKNOWN
+  REPLACED
+}
+
+model Hive {
+  id               String      @id @default(cuid())
+  hiveCode         String      @unique
+  beekeeperId      String
+  beekeeper        Beekeeper   @relation(fields: [beekeeperId], references: [id])
+  name             String
+  location         String
+  installationDate DateTime
+  queenAge         Int
+  queenStatus      QueenStatus @default(ACTIVE)
+  colonyStrength   Int
+  status           HiveStatus  @default(HEALTHY)
+  lastInspection   DateTime?
+  nextInspection   DateTime?
+
+  sensorReadings SensorReading[]
+  alerts         Alert[]
+  batches        HoneyBatch[]
+}
+
+model SensorReading {
+  id                   String   @id @default(cuid())
+  hiveId               String
+  hive                 Hive     @relation(fields: [hiveId], references: [id])
+  temperature          Float
+  externalTemperature  Float
+  humidity             Float
+  weight               Float
+  activity             String
+  activityScore        Int
+  sound                Float
+  battery              Int
+  timestamp            DateTime @default(now())
+
+  @@index([hiveId, timestamp])
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Alert {
+  id             String        @id @default(cuid())
+  hiveId         String
+  hive           Hive          @relation(fields: [hiveId], references: [id])
+  severity       AlertSeverity
+  title          String
+  message        String
+  recommendation String
+  timestamp      DateTime      @default(now())
+  dismissed      Boolean       @default(false)
+}
+
+enum BatchStatus {
+  DRAFT
+  AWAITING_LAB
+  IN_TESTING
+  LAB_PASSED
+  LAB_FAILED
+  BLOCKCHAIN_REGISTERED
+}
+
+model HoneyBatch {
+  id                 String      @id @default(cuid())
+  batchCode          String      @unique
+  hiveId             String
+  hive               Hive        @relation(fields: [hiveId], references: [id])
+  beekeeperId        String
+  beekeeper          Beekeeper   @relation(fields: [beekeeperId], references: [id])
+  harvestDate        DateTime
+  quantity           Float
+  honeyType          String
+  floralSource       String
+  extractionMethod   String
+  storageTemperature Float
+  storageLocation    String
+  moisture           Float?
+  ph                 Float?
+  status             BatchStatus @default(DRAFT)
+  envSnapshot        Json
+  createdAt          DateTime    @default(now())
+
+  labSamples         LabSample[]
+  blockchainRecords  BlockchainRecord[]
+}
+
+enum SampleStatus {
+  PENDING
+  TESTING_IN_PROGRESS
+  COMPLETED
+}
+
+model LabSample {
+  id            String       @id @default(cuid())
+  batchId       String
+  batch         HoneyBatch   @relation(fields: [batchId], references: [id])
+  laboratoryId  String
+  receivedAt    DateTime     @default(now())
+  status        SampleStatus @default(PENDING)
+  priority      String       @default("NORMAL")
+
+  tests   LabTest[]
+  reports LabReport[]
+}
+
+model LabTest {
+  id             String    @id @default(cuid())
+  sampleId       String
+  sample         LabSample @relation(fields: [sampleId], references: [id])
+  category       String
+  testName       String
+  measuredValue  String
+  unit           String
+  expectedRange  String
+  result         String
+  remarks        String?
+}
+
+model LabReport {
+  id              String   @id @default(cuid())
+  sampleId        String
+  sample          LabSample @relation(fields: [sampleId], references: [id])
+  batchId         String
+  technicianId    String
+  qualityScore    Float
+  qualityGrade    String
+  overallResult   String
+  breakdown       Json
+  remarks         String?
+  createdAt       DateTime @default(now())
+  digitallySigned Boolean  @default(false)
+}
+
+model BlockchainRecord {
+  id              String   @id @default(cuid())
+  batchId         String
+  batch           HoneyBatch @relation(fields: [batchId], references: [id])
+  transactionHash String
+  blockNumber     Int
+  network         String
+  timestamp       DateTime @default(now())
+  status          String   @default("CONFIRMED")
+  isDemo          Boolean  @default(true)
+  dataHash        String
+  recordType      String
+}
