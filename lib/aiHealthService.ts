@@ -7,6 +7,10 @@ import type { AiHealthResult, Hive, HoneyBatch, SensorReading, YieldPrediction }
 // "potential anomalies" and general recommendations from sensor thresholds.
 // Scores are derived directly from the input readings so the same inputs
 // always produce the same output (no Math.random at call time).
+//
+// Every input here maps to one of the four physical sensors on the
+// prototype: DHT22 (temperature, humidity), load cell + HX711 (weight),
+// analog microphone (soundLevel), digital vibration sensor (vibration).
 
 function clamp(value: number, min = 0, max = 100) {
   return Math.min(max, Math.max(min, value));
@@ -16,10 +20,6 @@ function scoreAroundIdeal(value: number, idealMin: number, idealMax: number, tol
   if (value >= idealMin && value <= idealMax) return 100;
   const distance = value < idealMin ? idealMin - value : value - idealMax;
   return clamp(100 - (distance / tolerance) * 100);
-}
-
-function activityToScore(reading: SensorReading) {
-  return reading.activityScore;
 }
 
 function stdDev(values: number[]) {
@@ -37,7 +37,7 @@ export function computeHiveHealth(hive: Hive, readings: SensorReading[]): AiHeal
     return {
       healthScore: 0,
       riskLevel: "MODERATE",
-      breakdown: { temperature: 0, humidity: 0, weightTrend: 0, beeActivity: 0, environmentalStability: 0 },
+      breakdown: { temperature: 0, humidity: 0, weightTrend: 0, soundActivity: 0 },
       anomalies: ["No sensor data available yet."],
       recommendations: ["Install or reconnect hive sensors to begin AI-assisted monitoring."],
       summary: "Insufficient sensor data to generate a health assessment.",
@@ -51,36 +51,27 @@ export function computeHiveHealth(hive: Hive, readings: SensorReading[]): AiHeal
   const weightTrendRaw = weights.length >= 2 ? weights[weights.length - 1] - weights[0] : 0;
   const weightTrendScore = Math.round(clamp(70 + weightTrendRaw * 12));
 
-  const activityScore = Math.round(activityToScore(latest));
-
-  const tempStability = stdDev(recent.map((r) => r.temperature));
-  const humidityStability = stdDev(recent.map((r) => r.humidity));
-  const environmentalStability = Math.round(
-    clamp(100 - tempStability * 6 - humidityStability * 1.5)
-  );
+  const soundActivityScore = Math.round(scoreAroundIdeal(latest.soundLevel, 1200, 2600, 900));
+  const recentVibrationCount = recent.filter((r) => r.vibration).length;
 
   const breakdown = {
     temperature: temperatureScore,
     humidity: humidityScore,
     weightTrend: weightTrendScore,
-    beeActivity: activityScore,
-    environmentalStability,
+    soundActivity: soundActivityScore,
   };
 
-  const healthScore = Math.round(
-    breakdown.temperature * 0.25 +
-      breakdown.humidity * 0.2 +
-      breakdown.weightTrend * 0.2 +
-      breakdown.beeActivity * 0.2 +
-      breakdown.environmentalStability * 0.15
+  let healthScore = Math.round(
+    breakdown.temperature * 0.3 + breakdown.humidity * 0.25 + breakdown.weightTrend * 0.25 + breakdown.soundActivity * 0.2
   );
+  if (recentVibrationCount > 0) healthScore = Math.round(clamp(healthScore - recentVibrationCount * 5));
 
   const anomalies: string[] = [];
   if (latest.humidity > 75) anomalies.push("Potential anomaly detected: humidity sustained above the preferred range.");
   if (latest.temperature > 38 || latest.temperature < 30) anomalies.push("Potential anomaly detected: brood-chamber temperature outside the typical band.");
-  if (activityScore < 35) anomalies.push("Potential anomaly detected: bee activity lower than expected for this time window.");
+  if (soundActivityScore < 40) anomalies.push("Potential anomaly detected: microphone sound level lower than expected for this time window.");
   if (weightTrendRaw < -0.5) anomalies.push("Potential anomaly detected: hive weight declining, which can indicate robbing or excessive foraging loss.");
-  if (latest.battery < 15) anomalies.push("Sensor battery low — readings may become unreliable soon.");
+  if (latest.vibration) anomalies.push("Potential anomaly detected: vibration sensor triggered — could indicate disturbance or swarming activity.");
 
   const riskLevel: AiHealthResult["riskLevel"] = healthScore >= 80 ? "LOW" : healthScore >= 60 ? "MODERATE" : "ELEVATED";
 
@@ -90,8 +81,8 @@ export function computeHiveHealth(hive: Hive, readings: SensorReading[]): AiHeal
   } else {
     if (latest.humidity > 75) recommendations.push("Improve hive ventilation or relocate to a drier microsite if humidity remains elevated.");
     if (weightTrendRaw < -0.5) recommendations.push("Inspect for signs of robbing, pests, or a failing nectar flow.");
-    if (activityScore < 35) recommendations.push("Schedule a manual inspection to confirm queen presence and colony strength.");
-    if (latest.battery < 15) recommendations.push("Replace or recharge the hive sensor battery.");
+    if (soundActivityScore < 40) recommendations.push("Schedule a manual inspection to confirm queen presence and colony strength.");
+    if (latest.vibration) recommendations.push("Check the hive in person — the vibration sensor detected unusual disturbance.");
   }
 
   const summary =

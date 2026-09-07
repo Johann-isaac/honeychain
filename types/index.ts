@@ -28,7 +28,6 @@ export interface Beekeeper {
 
 export type HiveStatus = "HEALTHY" | "ATTENTION" | "CRITICAL";
 export type QueenStatus = "ACTIVE" | "AGING" | "UNKNOWN" | "REPLACED";
-export type ActivityLevel = "LOW" | "MODERATE" | "HIGH";
 
 export interface Hive {
   id: string;
@@ -45,17 +44,18 @@ export interface Hive {
   nextInspection: string;
 }
 
+// Mirrors exactly what the physical prototype reports: one DHT22 (temperature
+// + humidity), one load cell via HX711 (weight), one analog microphone
+// (soundLevel), and one digital vibration sensor (vibration). No field here
+// should exist unless a real sensor on the hive produces it.
 export interface SensorReading {
   id: string;
   hiveId: string;
-  temperature: number; // C
-  externalTemperature: number; // C
-  humidity: number; // %
-  weight: number; // kg
-  activity: ActivityLevel;
-  activityScore: number; // 0-100
-  sound: number; // relative dB index
-  battery: number; // %
+  temperature: number; // C — DHT22
+  humidity: number; // % — DHT22
+  weight: number; // kg — load cell + HX711
+  soundLevel: number; // raw analog microphone reading (higher = louder)
+  vibration: boolean; // digital vibration sensor: true = vibration detected
   timestamp: string;
 }
 
@@ -120,8 +120,7 @@ export interface AiHealthResult {
     temperature: number;
     humidity: number;
     weightTrend: number;
-    beeActivity: number;
-    environmentalStability: number;
+    soundActivity: number;
   };
   anomalies: string[];
   recommendations: string[];

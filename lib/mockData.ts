@@ -133,44 +133,42 @@ function generateReadings(hive: Hive, seed: HiveSeed): SensorReading[] {
 
     const temperature = 34.3 + dayCycle * 1.1 + randRange(rand, -0.35, 0.35);
     let humidity = 58 + -dayCycle * 4 + randRange(rand, -2, 2);
-    const externalTemperature = 26 + dayCycle * 6.5 + randRange(rand, -1, 1);
-    let activityScore = 58 + dayCycle * 26 + randRange(rand, -5, 5);
-    const sound = clamp(38 + dayCycle * 16 + randRange(rand, -3, 3), 0, 100);
-    const battery = clamp(100 - ((TOTAL_POINTS - i) / TOTAL_POINTS) * 22 + randRange(rand, -1, 1), 0, 100);
+    // Analog microphone ADC reading — busier daytime foraging reads louder.
+    let soundLevel = 1500 + dayCycle * 500 + randRange(rand, -120, 120);
+    let vibration = false;
 
     weight += (dailyGain * INTERVAL_HOURS) / 24 + randRange(rand, -0.04, 0.04);
 
     if (seed.profile === "humidity") humidity += 20;
     if (seed.profile === "critical" && i < 12) {
-      activityScore = activityScore * 0.35 + randRange(rand, -8, 8);
+      // Irregular sound + intermittent vibration in the most recent window,
+      // consistent with the "unusual activity" alert this hive triggers.
+      soundLevel = soundLevel * 0.4 + randRange(rand, -300, 300);
+      vibration = rand() > 0.6;
     }
 
     readings.push({
       id: `sr_${seed.hiveCode}_${i}`,
       hiveId: hive.id,
       temperature: round1(temperature),
-      externalTemperature: round1(externalTemperature),
       humidity: round1(clamp(humidity, 28, 96)),
       weight: round1(weight),
-      activityScore: round0(clamp(activityScore, 0, 100)),
-      activity: activityScore > 70 ? "HIGH" : activityScore > 40 ? "MODERATE" : "LOW",
-      sound: round1(sound),
-      battery: round0(battery),
+      soundLevel: round0(clamp(soundLevel, 0, 4095)),
+      vibration,
       timestamp: new Date(t).toISOString(),
     });
   }
 
   // Hero hive: pin the latest reading to the flagship demo figures used
   // throughout the walkthrough (temperature 34.2C, humidity 62%, weight
-  // 48.6kg, high activity).
+  // 48.6kg).
   if (seed.profile === "hero") {
     const last = readings[readings.length - 1];
     last.temperature = 34.2;
     last.humidity = 62;
     last.weight = 48.6;
-    last.activityScore = 84;
-    last.activity = "HIGH";
-    last.battery = 91;
+    last.soundLevel = 2100;
+    last.vibration = false;
   }
 
   return readings;
@@ -202,8 +200,8 @@ export const alerts: Alert[] = [
     id: "al_002",
     hiveId: "hv_h-009",
     severity: "CRITICAL",
-    title: "Unusual activity pattern detected",
-    message: "Bee activity dropped sharply and irregularly over the last 24 hours. This is decision support only — please confirm with a manual inspection.",
+    title: "Unusual sound & vibration pattern detected",
+    message: "Microphone sound level dropped sharply and the vibration sensor triggered several times over the last 24 hours. This is decision support only — please confirm with a manual inspection.",
     recommendation: "Schedule an in-person inspection within 24 hours to confirm queen presence and colony strength.",
     timestamp: isoDaysAgo(0.3),
     dismissed: false,
@@ -224,7 +222,7 @@ export const alerts: Alert[] = [
     severity: "WARNING",
     title: "Elevated humidity",
     message: "Humidity has been trending above the ideal band for this hive over the last 6 hours.",
-    recommendation: "Verify hive ventilation and drainage after recent rainfall.",
+    recommendation: "Verify hive ventilation — humidity has stayed elevated for several hours.",
     timestamp: isoDaysAgo(1.2),
     dismissed: false,
   },
@@ -232,9 +230,9 @@ export const alerts: Alert[] = [
     id: "al_005",
     hiveId: "hv_h-009",
     severity: "WARNING",
-    title: "Sensor battery low",
-    message: "Hive sensor battery has dropped below 20% and may stop reporting soon.",
-    recommendation: "Replace or recharge the hive sensor at the next visit.",
+    title: "Vibration detected",
+    message: "The vibration sensor on this hive has triggered multiple times in the last few hours.",
+    recommendation: "Inspect the hive promptly to rule out external disturbance.",
     timestamp: isoDaysAgo(1.8),
     dismissed: false,
   },

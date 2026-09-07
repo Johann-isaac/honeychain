@@ -86,19 +86,19 @@ model Hive {
   batches        HoneyBatch[]
 }
 
+// Mirrors the physical prototype exactly: one DHT22 (temperature, humidity),
+// one load cell via HX711 (weight), one analog microphone (soundLevel), and
+// one digital vibration sensor (vibration).
 model SensorReading {
-  id                   String   @id @default(cuid())
-  hiveId               String
-  hive                 Hive     @relation(fields: [hiveId], references: [id])
-  temperature          Float
-  externalTemperature  Float
-  humidity             Float
-  weight               Float
-  activity             String
-  activityScore        Int
-  sound                Float
-  battery              Int
-  timestamp            DateTime @default(now())
+  id          String   @id @default(cuid())
+  hiveId      String
+  hive        Hive     @relation(fields: [hiveId], references: [id])
+  temperature Float
+  humidity    Float
+  weight      Float
+  soundLevel  Int
+  vibration   Boolean
+  timestamp   DateTime @default(now())
 
   @@index([hiveId, timestamp])
 }

@@ -5,8 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { SensorMonitoring } from "@/components/hive/sensor-monitoring";
 import { HealthScoreCard } from "@/components/hive/health-score-card";
 import { YieldPredictionCard } from "@/components/hive/yield-prediction-card";
-import { EnvironmentPanel } from "@/components/hive/environment-panel";
-import { getEnvironmentSnapshot } from "@/lib/environmentService";
 import { formatDate } from "@/lib/utils";
 import { getHiveHealth, getHiveById, getHiveYieldPrediction, getSensorReadings } from "@/lib/db";
 
@@ -18,7 +16,6 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
   const readings = getSensorReadings(hiveId, 24);
   const health = getHiveHealth(hiveId)!;
   const prediction = getHiveYieldPrediction(hiveId)!;
-  const env = getEnvironmentSnapshot(hive.hiveCode, hive.location);
 
   return (
     <div className="space-y-6">
@@ -62,8 +59,6 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
         <HealthScoreCard health={health} />
         <YieldPredictionCard prediction={prediction} />
       </div>
-
-      <EnvironmentPanel env={env} />
     </div>
   );
 }

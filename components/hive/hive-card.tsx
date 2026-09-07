@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, Droplets, MapPin, Scale, Thermometer, CalendarClock } from "lucide-react";
+import { AlertTriangle, Droplets, MapPin, Mic, Scale, Thermometer, CalendarClock } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { daysUntil } from "@/lib/utils";
@@ -52,10 +52,15 @@ export function HiveCard({
               <span>{reading ? `${reading.weight} kg` : "—"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Activity className="size-4 text-destructive" />
-              <span className="capitalize">{reading ? reading.activity.toLowerCase() : "—"}</span>
+              <Mic className="size-4 text-destructive" />
+              <span>{reading ? reading.soundLevel : "—"}</span>
             </div>
           </div>
+          {reading?.vibration && (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+              <AlertTriangle className="size-3.5" /> Vibration detected
+            </p>
+          )}
           <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
             <span>Est. yield: <b className="text-foreground">{estimatedYieldKg?.toFixed(1) ?? "—"} kg</b></span>
             <span className="flex items-center gap-1">

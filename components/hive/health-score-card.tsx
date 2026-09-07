@@ -14,8 +14,7 @@ const breakdownLabels: Record<keyof AiHealthResult["breakdown"], string> = {
   temperature: "Temperature",
   humidity: "Humidity",
   weightTrend: "Weight trend",
-  beeActivity: "Bee activity",
-  environmentalStability: "Environmental stability",
+  soundActivity: "Sound activity",
 };
 
 export function HealthScoreCard({ health }: { health: AiHealthResult }) {
