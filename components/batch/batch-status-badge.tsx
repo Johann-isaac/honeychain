@@ -1,13 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import type { BatchStatus } from "@/types";
 
-export const batchStatusMeta: Record<BatchStatus, { label: string; variant: "default" | "success" | "warning" | "destructive" | "muted"; dot: string }> = {
-  DRAFT: { label: "Draft", dot: "⚪", variant: "muted" },
-  AWAITING_LAB: { label: "Awaiting Laboratory Testing", dot: "🟡", variant: "warning" },
-  IN_TESTING: { label: "Testing In Progress", dot: "🟡", variant: "warning" },
-  LAB_PASSED: { label: "Lab Passed", dot: "🟢", variant: "success" },
-  LAB_FAILED: { label: "Lab Failed", dot: "🔴", variant: "destructive" },
+export const batchStatusMeta: Record<BatchStatus, { label: string; variant: "success" | "warning" | "destructive" | "muted"; dot: string }> = {
+  DRAFT: { label: "Registering…", dot: "⚪", variant: "muted" },
   BLOCKCHAIN_REGISTERED: { label: "Blockchain Verified", dot: "🟢", variant: "success" },
+  REGISTRATION_FAILED: { label: "Registration Failed", dot: "🔴", variant: "destructive" },
 };
 
 export function BatchStatusBadge({ status }: { status: BatchStatus }) {

@@ -3,12 +3,14 @@ import { Hexagon, ShieldCheck, AlertTriangle, Droplet, CalendarClock, Package, A
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { HiveCard } from "@/components/hive/hive-card";
 import { AlertItem } from "@/components/hive/alert-item";
+import { NextYieldForecast } from "@/components/dashboard/next-yield-forecast";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_BEEKEEPER_ID,
   getAlertsForBeekeeper,
   getBeekeeperById,
   getBeekeeperDashboard,
+  getBeekeeperYieldForecast,
   getHiveYieldPrediction,
   getHivesByBeekeeper,
   getLatestSensorReading,
@@ -20,6 +22,7 @@ export const dynamic = "force-dynamic";
 export default async function BeekeeperDashboard() {
   const beekeeper = getBeekeeperById(DEFAULT_BEEKEEPER_ID)!;
   const kpis = getBeekeeperDashboard(DEFAULT_BEEKEEPER_ID);
+  const forecast = getBeekeeperYieldForecast(DEFAULT_BEEKEEPER_ID);
   const hives = getHivesByBeekeeper(DEFAULT_BEEKEEPER_ID);
   const alerts = getAlertsForBeekeeper(DEFAULT_BEEKEEPER_ID).slice(0, 3);
   const firstName = beekeeper.name.split(" ")[0];
@@ -43,8 +46,10 @@ export default async function BeekeeperDashboard() {
         <KpiCard label="Attention Required" value={kpis.attentionHives} icon={AlertTriangle} tone="warning" />
         <KpiCard label="Est. Honey Yield" value={kpis.estimatedYieldKg} suffix=" kg" decimals={1} icon={Droplet} />
         <KpiCard label="Next Expected Harvest" value={kpis.nextHarvestDays} suffix=" Days" icon={CalendarClock} />
-        <KpiCard label="Active Honey Batches" value={kpis.activeBatches} icon={Package} />
+        <KpiCard label="Total Honey Batches" value={kpis.totalBatches} icon={Package} />
       </div>
+
+      <NextYieldForecast forecast={forecast} />
 
       <section>
         <div className="mb-4 flex items-center justify-between">

@@ -16,7 +16,7 @@ export default async function ProfilePage() {
     <div className="max-w-xl space-y-6">
       <div>
         <h1 className="font-display text-2xl">Profile</h1>
-        <p className="text-sm text-muted-foreground">Your public beekeeper identity as shown to laboratories and consumers.</p>
+        <p className="text-sm text-muted-foreground">Your public beekeeper identity as shown to consumers.</p>
       </div>
 
       <Card>

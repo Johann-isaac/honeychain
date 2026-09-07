@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 const roles = [
   { key: "beekeeper", label: "Beekeeper", href: "/beekeeper" },
-  { key: "lab", label: "Laboratory", href: "/lab" },
   { key: "consumer", label: "Consumer", href: "/consumer" },
 ] as const;
 

@@ -18,7 +18,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "HoneyChain — Verified Honey Traceability",
   description:
-    "HoneyChain creates a transparent digital journey for every batch of honey — from the beekeeper's hive to laboratory verification and finally to the consumer.",
+    "HoneyChain creates a transparent digital journey for every batch of honey — from the beekeeper's hive to blockchain verification and finally to the consumer.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

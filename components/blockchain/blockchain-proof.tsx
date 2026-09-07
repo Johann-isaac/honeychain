@@ -36,7 +36,7 @@ export function BlockchainProof({ record, showLink = false }: { record: Blockcha
         )}
         <div className="space-y-1.5 text-sm">
           <p className="flex items-center gap-1.5 text-success"><CheckCircle2 className="size-4" /> Batch registered</p>
-          <p className="flex items-center gap-1.5 text-success"><CheckCircle2 className="size-4" /> Lab result recorded</p>
+          <p className="flex items-center gap-1.5 text-success"><CheckCircle2 className="size-4" /> Origin data recorded</p>
           <p className="flex items-center gap-1.5 text-success"><CheckCircle2 className="size-4" /> Record integrity verified</p>
         </div>
         <div className="grid grid-cols-2 gap-3 rounded-xl bg-card p-3 text-xs">

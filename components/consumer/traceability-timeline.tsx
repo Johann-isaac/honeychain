@@ -1,4 +1,4 @@
-import { Bug, FlaskConical, Link2, Package, ScanLine, Sprout } from "lucide-react";
+import { Bug, Link2, Package, ScanLine, Sprout } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 
@@ -6,8 +6,6 @@ const ICONS: Record<string, typeof Sprout> = {
   hive: Bug,
   harvest: Sprout,
   batch: Package,
-  "lab-received": FlaskConical,
-  "lab-done": FlaskConical,
   blockchain: Link2,
   consumer: ScanLine,
 };

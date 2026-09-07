@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   Radio,
-  FlaskConical,
   Link2,
   ScanLine,
   Sprout,
@@ -25,15 +24,13 @@ export const dynamic = "force-dynamic";
 const steps = [
   { icon: Radio, title: "Hive Monitoring", desc: "IoT sensors track temperature, humidity, and weight in real time." },
   { icon: Sprout, title: "Honey Harvest", desc: "Beekeepers log harvest details and environmental conditions." },
-  { icon: FlaskConical, title: "Laboratory Testing", desc: "Accredited technicians run physical, chemical & purity tests." },
-  { icon: Link2, title: "Blockchain Registration", desc: "Verified results are anchored to a tamper-resistant ledger." },
+  { icon: Link2, title: "Blockchain Registration", desc: "Every batch is anchored to a tamper-resistant ledger the moment it's created." },
   { icon: ScanLine, title: "Consumer Verification", desc: "Anyone can scan the jar's QR code to see the full journey." },
 ];
 
 const whyBlockchain = [
-  { icon: ShieldCheck, title: "Tamper-resistant records", desc: "Once a lab result is registered, it cannot be silently altered." },
+  { icon: ShieldCheck, title: "Tamper-resistant records", desc: "Once a batch is registered, its record cannot be silently altered." },
   { icon: Fingerprint, title: "Batch traceability", desc: "Every jar links back to a specific hive, harvest date, and beekeeper." },
-  { icon: FlaskConical, title: "Laboratory verification", desc: "Independent quality testing backs every verified claim." },
   { icon: Eye, title: "Transparent provenance", desc: "The full hive-to-jar journey is visible, not just a logo on a label." },
   { icon: Users, title: "Consumer confidence", desc: "Shoppers can check authenticity themselves, in seconds." },
 ];
@@ -56,10 +53,10 @@ export default async function LandingPage() {
         </nav>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-            <Link href="/beekeeper">Beekeeper</Link>
+            <Link href="/consumer">Verify Honey</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/lab">Laboratory</Link>
+            <Link href="/beekeeper">Beekeeper</Link>
           </Button>
         </div>
       </header>
@@ -75,7 +72,7 @@ export default async function LandingPage() {
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             HoneyChain creates a transparent digital journey for every batch of honey — from the beekeeper&apos;s hive
-            to laboratory verification and finally to the consumer.
+            to blockchain verification and finally to the consumer.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
@@ -102,11 +99,11 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="mb-12 text-center">
             <h2 className="font-display text-3xl">How HoneyChain Works</h2>
-            <p className="mt-2 text-muted-foreground">Five verifiable stages from apiary to your kitchen table.</p>
+            <p className="mt-2 text-muted-foreground">Four verifiable stages from apiary to your kitchen table.</p>
           </div>
-          <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <svg className="pointer-events-none absolute inset-x-0 top-8 hidden h-1 w-full lg:block" preserveAspectRatio="none">
-              <line x1="10%" y1="0" x2="90%" y2="0" stroke="var(--color-honey)" strokeWidth="2" className="animate-flow-line" />
+              <line x1="12%" y1="0" x2="88%" y2="0" stroke="var(--color-honey)" strokeWidth="2" className="animate-flow-line" />
             </svg>
             {steps.map((step, i) => (
               <div key={step.title} className="relative flex flex-col items-center text-center">
@@ -126,17 +123,16 @@ export default async function LandingPage() {
 
       {/* Stats */}
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "Active Hives", value: stats.activeHives, suffix: "" },
-            { label: "Honey Batches", value: stats.totalBatches, suffix: "" },
-            { label: "Lab Verified Batches", value: stats.labVerifiedBatches, suffix: "" },
-            { label: "Verification Success", value: stats.verificationSuccessRate, suffix: "%" },
-            { label: "Beekeepers", value: stats.beekeepersCount, suffix: "" },
+            { label: "Active Hives", value: stats.activeHives },
+            { label: "Honey Batches", value: stats.totalBatches },
+            { label: "Verified Batches", value: stats.verifiedBatches },
+            { label: "Beekeepers", value: stats.beekeepersCount },
           ].map((s) => (
             <div key={s.label} className="rounded-2xl border border-border bg-card p-5 text-center card-shadow">
               <p className="font-display text-3xl text-honey-dark dark:text-honey">
-                <AnimatedCounter value={s.value} decimals={s.suffix === "%" ? 1 : 0} suffix={s.suffix} />
+                <AnimatedCounter value={s.value} />
               </p>
               <p className="mt-1.5 text-xs font-medium text-muted-foreground">{s.label}</p>
             </div>
@@ -153,7 +149,7 @@ export default async function LandingPage() {
               A shared, verifiable record means no single party can quietly rewrite the story of a jar of honey.
             </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {whyBlockchain.map((item) => (
               <div key={item.title} className="rounded-2xl border border-border bg-card p-5 card-shadow">
                 <item.icon className="size-6 text-nature" />
@@ -171,8 +167,8 @@ export default async function LandingPage() {
           <div>
             <h2 className="font-display text-3xl">Scan. Verify. Trust.</h2>
             <p className="mt-3 max-w-md text-muted-foreground">
-              Every verified jar carries a unique QR code linking to its full origin, laboratory results, and
-              blockchain record — no login required.
+              Every verified jar carries a unique QR code linking to its full origin and blockchain record —
+              no login required.
             </p>
             <div className="mt-6">
               <VerifyQuickForm />

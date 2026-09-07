@@ -19,7 +19,6 @@ datasource db {
 
 enum UserRole {
   BEEKEEPER
-  LAB_TECHNICIAN
   CONSUMER
 }
 
@@ -122,13 +121,13 @@ model Alert {
   dismissed      Boolean       @default(false)
 }
 
+// Every batch is registered on the blockchain the moment it's created —
+// there is no laboratory step. DRAFT is only the brief pre-registration
+// window; REGISTRATION_FAILED is a defensive fallback for a provider error.
 enum BatchStatus {
   DRAFT
-  AWAITING_LAB
-  IN_TESTING
-  LAB_PASSED
-  LAB_FAILED
   BLOCKCHAIN_REGISTERED
+  REGISTRATION_FAILED
 }
 
 model HoneyBatch {
@@ -145,61 +144,11 @@ model HoneyBatch {
   extractionMethod   String
   storageTemperature Float
   storageLocation    String
-  moisture           Float?
-  ph                 Float?
   status             BatchStatus @default(DRAFT)
   envSnapshot        Json
   createdAt          DateTime    @default(now())
 
-  labSamples         LabSample[]
   blockchainRecords  BlockchainRecord[]
-}
-
-enum SampleStatus {
-  PENDING
-  TESTING_IN_PROGRESS
-  COMPLETED
-}
-
-model LabSample {
-  id            String       @id @default(cuid())
-  batchId       String
-  batch         HoneyBatch   @relation(fields: [batchId], references: [id])
-  laboratoryId  String
-  receivedAt    DateTime     @default(now())
-  status        SampleStatus @default(PENDING)
-  priority      String       @default("NORMAL")
-
-  tests   LabTest[]
-  reports LabReport[]
-}
-
-model LabTest {
-  id             String    @id @default(cuid())
-  sampleId       String
-  sample         LabSample @relation(fields: [sampleId], references: [id])
-  category       String
-  testName       String
-  measuredValue  String
-  unit           String
-  expectedRange  String
-  result         String
-  remarks        String?
-}
-
-model LabReport {
-  id              String   @id @default(cuid())
-  sampleId        String
-  sample          LabSample @relation(fields: [sampleId], references: [id])
-  batchId         String
-  technicianId    String
-  qualityScore    Float
-  qualityGrade    String
-  overallResult   String
-  breakdown       Json
-  remarks         String?
-  createdAt       DateTime @default(now())
-  digitallySigned Boolean  @default(false)
 }
 
 model BlockchainRecord {
@@ -213,5 +162,4 @@ model BlockchainRecord {
   status          String   @default("CONFIRMED")
   isDemo          Boolean  @default(true)
   dataHash        String
-  recordType      String
 }

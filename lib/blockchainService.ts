@@ -16,7 +16,6 @@ export interface BlockchainProvider {
   network: string;
   isReal: boolean;
   registerBatch(batchId: string, payload: Record<string, unknown>): Promise<BlockchainRecord>;
-  registerLabReport(batchId: string, payload: Record<string, unknown>): Promise<BlockchainRecord>;
   verifyBatch(batchId: string, dataHash: string): Promise<boolean>;
   getTransaction(transactionHash: string): Promise<BlockchainRecord | null>;
 }
@@ -54,11 +53,10 @@ const DEMO_NETWORK = "HoneyChain Demo Network (mock)";
 export function createDeterministicRecord(
   batchId: string,
   payload: Record<string, unknown>,
-  recordType: BlockchainRecord["recordType"],
   timestamp: string,
   seedSuffix: string | number
 ): BlockchainRecord {
-  const seed = `${batchId}:${recordType}:${seedSuffix}`;
+  const seed = `${batchId}:${seedSuffix}`;
   const dataHash = hashPayload(payload);
   const record: BlockchainRecord = {
     id: `bcr_${seed}`,
@@ -70,7 +68,6 @@ export function createDeterministicRecord(
     status: "CONFIRMED",
     isDemo: true,
     dataHash,
-    recordType,
   };
   records.set(record.transactionHash, record);
   return record;
@@ -80,23 +77,10 @@ class MockBlockchainProvider implements BlockchainProvider {
   network = DEMO_NETWORK;
   isReal = false;
 
-  private makeRecord(
-    batchId: string,
-    payload: Record<string, unknown>,
-    recordType: BlockchainRecord["recordType"]
-  ): BlockchainRecord {
-    globalThis.__honeychainBlockchainCounter = (globalThis.__honeychainBlockchainCounter ?? 0) + 1;
-    return createDeterministicRecord(batchId, payload, recordType, new Date().toISOString(), globalThis.__honeychainBlockchainCounter);
-  }
-
   async registerBatch(batchId: string, payload: Record<string, unknown>) {
     await simulateLatency();
-    return this.makeRecord(batchId, payload, "BATCH_REGISTRATION");
-  }
-
-  async registerLabReport(batchId: string, payload: Record<string, unknown>) {
-    await simulateLatency();
-    return this.makeRecord(batchId, payload, "LAB_REPORT");
+    globalThis.__honeychainBlockchainCounter = (globalThis.__honeychainBlockchainCounter ?? 0) + 1;
+    return createDeterministicRecord(batchId, payload, new Date().toISOString(), globalThis.__honeychainBlockchainCounter);
   }
 
   async verifyBatch(batchId: string, dataHash: string) {

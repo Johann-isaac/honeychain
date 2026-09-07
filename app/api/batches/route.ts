@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const storageTemperature = requirePositiveNumber(body.storageTemperature, "Storage temperature");
     const storageLocation = sanitizeText(requireString(body.storageLocation, "Storage location", { maxLength: 120 }));
 
-    const batch = createBatch({
+    const batch = await createBatch({
       hiveId,
       beekeeperId: hive.beekeeperId,
       harvestDate,

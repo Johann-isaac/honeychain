@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, Clock, MapPin, ShieldCheck, ShieldX, Thermometer, Droplets, Scale, Activity, Sparkles } from "lucide-react";
+import { BadgeCheck, Clock, MapPin, ShieldCheck, ShieldX, Thermometer, Droplets, Scale, Activity, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HoneycombLogo } from "@/components/honeycomb-logo";
-import { LabSummary } from "@/components/consumer/lab-summary";
 import { BlockchainProof } from "@/components/blockchain/blockchain-proof";
 import { TraceabilityTimeline } from "@/components/consumer/traceability-timeline";
 import { formatDate } from "@/lib/utils";
@@ -57,13 +56,13 @@ function NotFoundState({ batchId }: { batchId: string }) {
 type VerificationResult = Extract<Awaited<ReturnType<typeof getPublicVerification>>, { found: true }>;
 
 function VerifiedContent({ result }: { result: VerificationResult }) {
-  const { batch, hive, beekeeper, lab, blockchain, timeline, isVerified } = result;
+  const { batch, hive, beekeeper, blockchain, timeline, isVerified } = result;
 
   const statusMeta = isVerified
     ? { label: "Honey Verified ✓", icon: ShieldCheck, tone: "success" as const, sub: "This batch is fully verified on the HoneyChain ledger." }
-    : batch.status === "LAB_FAILED"
-      ? { label: "Did Not Pass Verification", icon: ShieldX, tone: "destructive" as const, sub: "This batch failed laboratory quality screening and was withheld from sale certification." }
-      : { label: "Verification In Progress", icon: Clock, tone: "warning" as const, sub: "This batch has not completed the full verification pipeline yet." };
+    : batch.status === "REGISTRATION_FAILED"
+      ? { label: "Verification Failed", icon: ShieldX, tone: "destructive" as const, sub: "This batch could not be registered on the blockchain and is not verified." }
+      : { label: "Verification In Progress", icon: Clock, tone: "warning" as const, sub: "This batch is still being registered on the blockchain." };
 
   return (
     <div className="space-y-6">
@@ -141,26 +140,6 @@ function VerifiedContent({ result }: { result: VerificationResult }) {
           <Field label="Storage Conditions" value={`${batch.storageTemperature}°C · ${batch.storageLocation}`} />
         </CardContent>
       </Card>
-
-      {lab && (
-        <LabSummary
-          overallResult={lab.overallResult}
-          qualityGrade={lab.qualityGrade}
-          qualityScore={lab.qualityScore}
-          selectedTests={lab.selectedTests}
-          allTests={lab.allTests}
-          adulterationPassed={lab.adulterationPassed}
-          testedAt={lab.testedAt}
-        />
-      )}
-
-      {!lab && (
-        <Card className="border-dashed">
-          <CardContent className="flex items-center gap-3 p-5 text-sm text-muted-foreground">
-            <AlertTriangle className="size-4 shrink-0" /> Laboratory testing has not been completed for this batch yet.
-          </CardContent>
-        </Card>
-      )}
 
       <BlockchainProof record={blockchain} />
 

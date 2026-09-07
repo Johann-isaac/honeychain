@@ -13,29 +13,12 @@ import {
   beekeepers,
   blockchainRecords as seedBlockchainRecords,
   hives,
-  labIdentity,
-  labReports as seedLabReports,
-  labSamples as seedLabSamples,
-  labTests as seedLabTests,
   sensorReadingsByHive,
-  testTemplates,
   users,
 } from "@/lib/mockData";
 import { computeHiveHealth, predictYield } from "@/lib/aiHealthService";
-import { computeQuality, evaluateTestResult } from "@/lib/qualityService";
 import { blockchainService } from "@/lib/blockchainService";
-import type {
-  Alert,
-  Beekeeper,
-  BlockchainRecord,
-  Hive,
-  HoneyBatch,
-  LabReport,
-  LabSample,
-  LabTest,
-  SensorReading,
-  User,
-} from "@/types";
+import type { Alert, Beekeeper, BlockchainRecord, Hive, HoneyBatch, SensorReading, User, YieldForecast } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Mutable in-memory state
@@ -53,12 +36,8 @@ interface MockState {
   hives: Hive[];
   alerts: Alert[];
   batches: HoneyBatch[];
-  labSamples: LabSample[];
-  labTests: LabTest[];
-  labReports: LabReport[];
   blockchainRecords: BlockchainRecord[];
   batchCounter: number;
-  sampleCounter: number;
 }
 
 declare global {
@@ -73,12 +52,8 @@ function createInitialState(): MockState {
     hives: [...hives],
     alerts: [...seedAlerts],
     batches: [...seedBatches],
-    labSamples: [...seedLabSamples],
-    labTests: [...seedLabTests],
-    labReports: [...seedLabReports],
     blockchainRecords: [...seedBlockchainRecords],
     batchCounter: 1000,
-    sampleCounter: 1000,
   };
 }
 
@@ -102,8 +77,6 @@ export function getAllBeekeepers(): Beekeeper[] {
 export function getBeekeeperById(id: string): Beekeeper | undefined {
   return state.beekeepers.find((b) => b.id === id);
 }
-
-export const labProfile = labIdentity;
 
 // ---------------------------------------------------------------------------
 // Hives
@@ -198,7 +171,12 @@ export interface CreateBatchInput {
   storageLocation: string;
 }
 
-export function createBatch(input: CreateBatchInput): HoneyBatch {
+// Creates a batch and immediately registers it on the (demo) blockchain —
+// there is no laboratory step in between. If the registration call ever
+// throws (e.g. once this is swapped for a real Web3 provider that can hit
+// a network error), the batch is kept but marked REGISTRATION_FAILED
+// instead of silently losing the beekeeper's submission.
+export async function createBatch(input: CreateBatchInput): Promise<HoneyBatch> {
   state.batchCounter += 1;
   const batchCounter = state.batchCounter;
   const hive = getHiveById(input.hiveId);
@@ -227,178 +205,26 @@ export function createBatch(input: CreateBatchInput): HoneyBatch {
     createdAt: new Date().toISOString(),
   };
   state.batches.unshift(batch);
-  return batch;
-}
 
-export function sendBatchToLab(batchId: string): { batch: HoneyBatch; sample: LabSample } | undefined {
-  const batch = getBatchById(batchId);
-  if (!batch) return undefined;
-  batch.status = "AWAITING_LAB";
-
-  state.sampleCounter += 1;
-  const sample: LabSample = {
-    id: `ls_${Date.now()}_${state.sampleCounter}`,
-    batchId: batch.id,
-    laboratoryId: labIdentity.laboratoryId,
-    receivedAt: new Date().toISOString(),
-    status: "PENDING",
-    priority: "NORMAL",
-  };
-  state.labSamples.unshift(sample);
-  return { batch, sample };
-}
-
-// ---------------------------------------------------------------------------
-// Laboratory
-// ---------------------------------------------------------------------------
-
-export function getLabSamples(): LabSample[] {
-  return state.labSamples.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
-}
-
-export interface EnrichedLabSample extends LabSample {
-  batchCode: string;
-  honeyType: string;
-  quantity: number;
-  hiveCode: string;
-  beekeeperCode: string;
-}
-
-export function getEnrichedLabSamples(): EnrichedLabSample[] {
-  return getLabSamples().map((sample) => {
-    const batch = getBatchById(sample.batchId);
-    const hive = batch ? getHiveById(batch.hiveId) : undefined;
-    const beekeeper = batch ? getBeekeeperById(batch.beekeeperId) : undefined;
-    return {
-      ...sample,
-      batchCode: batch?.batchCode ?? "—",
-      honeyType: batch?.honeyType ?? "—",
-      quantity: batch?.quantity ?? 0,
-      hiveCode: hive?.hiveCode ?? "—",
-      beekeeperCode: beekeeper?.beekeeperCode ?? "—",
-    };
-  });
-}
-
-export function getLabSampleById(id: string): LabSample | undefined {
-  return state.labSamples.find((s) => s.id === id);
-}
-
-export function getLabSampleByBatchId(batchId: string): LabSample | undefined {
-  return state.labSamples.find((s) => s.batchId === batchId);
-}
-
-export function getLabTestsBySample(sampleId: string): LabTest[] {
-  return state.labTests.filter((t) => t.sampleId === sampleId);
-}
-
-export function getTestTemplates() {
-  return testTemplates;
-}
-
-export interface SubmittedTestInput {
-  category: LabTest["category"];
-  testName: string;
-  unit: string;
-  expectedRange: string;
-  measuredValue: number | string;
-  remarks?: string;
-}
-
-export function submitLabTests(sampleId: string, tests: SubmittedTestInput[]): LabTest[] {
-  const sample = getLabSampleById(sampleId);
-  if (!sample) throw new Error("Sample not found");
-
-  // Replace any existing tests for this sample with the submitted set.
-  state.labTests = state.labTests.filter((t) => t.sampleId !== sampleId);
-
-  const saved: LabTest[] = tests.map((t, idx) => {
-    const result = evaluateTestResult({ measuredValue: t.measuredValue, expectedRange: t.expectedRange });
-    return {
-      id: `${sampleId}_t${idx}_${Date.now()}`,
-      sampleId,
-      category: t.category,
-      testName: t.testName,
-      measuredValue: t.measuredValue,
-      unit: t.unit,
-      expectedRange: t.expectedRange,
-      result,
-      remarks: t.remarks ?? "",
-    };
-  });
-
-  state.labTests.push(...saved);
-  sample.status = "TESTING_IN_PROGRESS";
-  return saved;
-}
-
-export function getAllLabReports(): LabReport[] {
-  return [...state.labReports].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}
-
-export function getLabReportBySample(sampleId: string): LabReport | undefined {
-  return state.labReports.find((r) => r.sampleId === sampleId);
-}
-
-export function getLabReportByBatch(batchId: string): LabReport | undefined {
-  return state.labReports.find((r) => r.batchId === batchId);
-}
-
-export function approveLabReport(sampleId: string, technicianId: string): LabReport | undefined {
-  const sample = getLabSampleById(sampleId);
-  if (!sample) return undefined;
-  const tests = getLabTestsBySample(sampleId);
-  if (tests.length === 0) return undefined;
-
-  const computed = computeQuality(tests);
-  const report: LabReport = {
-    id: `lr_${sampleId}_${Date.now()}`,
-    sampleId,
-    batchId: sample.batchId,
-    technicianId,
-    qualityScore: computed.qualityScore,
-    qualityGrade: computed.qualityGrade,
-    overallResult: computed.overallResult,
-    breakdown: computed.breakdown,
-    remarks:
-      computed.overallResult === "PASSED"
-        ? "Sample meets HoneyChain demo quality thresholds across physical, chemical, and microbiological parameters."
-        : "Sample failed one or more critical screening tests. Batch withheld from blockchain registration.",
-    createdAt: new Date().toISOString(),
-    digitallySigned: true,
-  };
-
-  state.labReports = state.labReports.filter((r) => r.sampleId !== sampleId);
-  state.labReports.push(report);
-  sample.status = "COMPLETED";
-
-  const batch = getBatchById(sample.batchId);
-  if (batch) {
-    batch.status = computed.overallResult === "PASSED" ? "LAB_PASSED" : "LAB_FAILED";
+  try {
+    const record = await blockchainService.registerBatch(batch.id, {
+      batchCode: batch.batchCode,
+      hiveId: batch.hiveId,
+      harvestDate: batch.harvestDate,
+      quantity: batch.quantity,
+    });
+    state.blockchainRecords.push(record);
+    batch.status = "BLOCKCHAIN_REGISTERED";
+  } catch {
+    batch.status = "REGISTRATION_FAILED";
   }
 
-  return report;
+  return batch;
 }
 
 // ---------------------------------------------------------------------------
 // Blockchain
 // ---------------------------------------------------------------------------
-
-export async function registerBatchOnBlockchain(batchId: string): Promise<BlockchainRecord | undefined> {
-  const batch = getBatchById(batchId);
-  const report = getLabReportByBatch(batchId);
-  if (!batch || !report || report.overallResult !== "PASSED") return undefined;
-
-  const record = await blockchainService.registerLabReport(batchId, {
-    batchCode: batch.batchCode,
-    qualityScore: report.qualityScore,
-    qualityGrade: report.qualityGrade,
-    reportId: report.id,
-  });
-  state.blockchainRecords.push(record);
-  batch.status = "BLOCKCHAIN_REGISTERED";
-  return record;
-}
 
 export function getBlockchainRecordsByBatch(batchId: string): BlockchainRecord[] {
   return state.blockchainRecords.filter((r) => r.batchId === batchId);
@@ -415,16 +241,11 @@ export function getAllBlockchainRecords(): BlockchainRecord[] {
 export function getPlatformStats() {
   const activeHives = state.hives.length;
   const totalBatches = state.batches.length;
-  const labVerifiedBatches = state.batches.filter((b) => b.status === "BLOCKCHAIN_REGISTERED").length;
-  const testedBatches = state.labReports.length;
-  const verificationSuccessRate = testedBatches
-    ? Math.round((state.labReports.filter((r) => r.overallResult === "PASSED").length / testedBatches) * 1000) / 10
-    : 0;
+  const verifiedBatches = state.batches.filter((b) => b.status === "BLOCKCHAIN_REGISTERED").length;
   return {
     activeHives,
     totalBatches,
-    labVerifiedBatches,
-    verificationSuccessRate,
+    verifiedBatches,
     beekeepersCount: state.beekeepers.length,
   };
 }
@@ -437,8 +258,7 @@ export function getBeekeeperDashboard(beekeeperId: string) {
   const predictions = hiveList.map((h) => getHiveYieldPrediction(h.id)?.predictedYieldKg ?? 0);
   const estimatedYieldKg = Math.round(predictions.reduce((a, b) => a + b, 0) * 10) / 10;
 
-  const batchList = getBatchesByBeekeeper(beekeeperId);
-  const activeBatches = batchList.filter((b) => b.status !== "BLOCKCHAIN_REGISTERED" && b.status !== "LAB_FAILED").length;
+  const totalBatches = getBatchesByBeekeeper(beekeeperId).length;
 
   const nextInspectionDays = hiveList.length
     ? Math.min(
@@ -452,19 +272,42 @@ export function getBeekeeperDashboard(beekeeperId: string) {
     attentionHives,
     estimatedYieldKg,
     nextHarvestDays: Math.max(1, nextInspectionDays),
-    activeBatches,
+    totalBatches,
   };
 }
 
-export function getLabDashboard() {
-  const pendingSamples = state.labSamples.filter((s) => s.status !== "COMPLETED").length;
-  const testsCompleted = state.labReports.length;
-  const passed = state.labReports.filter((r) => r.overallResult === "PASSED").length;
-  const failed = state.labReports.filter((r) => r.overallResult === "FAILED").length;
-  const avgQualityScore = testsCompleted
-    ? Math.round((state.labReports.reduce((sum, r) => sum + r.qualityScore, 0) / testsCompleted) * 10) / 10
+// Aggregate "next expected yield" forecast across every hive a beekeeper
+// owns, for the dashboard's yield-prediction feature.
+export function getBeekeeperYieldForecast(beekeeperId: string): YieldForecast {
+  const hiveList = getHivesByBeekeeper(beekeeperId);
+
+  const perHive = hiveList
+    .map((hive) => {
+      const prediction = getHiveYieldPrediction(hive.id);
+      if (!prediction) return null;
+      return {
+        hiveId: hive.id,
+        hiveCode: hive.hiveCode,
+        hiveName: hive.name,
+        predictedYieldKg: prediction.predictedYieldKg,
+        expectedHarvestDate: prediction.expectedHarvestDate,
+        confidence: prediction.confidence,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .sort((a, b) => new Date(a.expectedHarvestDate).getTime() - new Date(b.expectedHarvestDate).getTime());
+
+  const totalPredictedKg = Math.round(perHive.reduce((sum, h) => sum + h.predictedYieldKg, 0) * 10) / 10;
+  const averageConfidence = perHive.length
+    ? Math.round(perHive.reduce((sum, h) => sum + h.confidence, 0) / perHive.length)
     : 0;
-  return { pendingSamples, testsCompleted, passed, failed, avgQualityScore };
+
+  return {
+    totalPredictedKg,
+    averageConfidence,
+    nextHarvest: perHive[0] ?? null,
+    perHive,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -477,20 +320,11 @@ export function getPublicVerification(batchCode: string) {
 
   const hive = getHiveById(batch.hiveId);
   const beekeeper = hive ? getBeekeeperById(hive.beekeeperId) : undefined;
-  const sample = getLabSampleByBatchId(batch.id);
-  const report = sample ? getLabReportBySample(sample.id) : undefined;
-  const tests = sample ? getLabTestsBySample(sample.id) : [];
   const blockchainRecord = getBlockchainRecordsByBatch(batch.id)[0];
 
   if (!hive || !beekeeper) return { found: false as const };
 
   const isVerified = batch.status === "BLOCKCHAIN_REGISTERED" && !!blockchainRecord;
-
-  const consumerFriendlyTests = tests
-    .filter((t) => ["Moisture", "pH", "HMF (Hydroxymethylfurfural)", "Sucrose"].includes(t.testName))
-    .map((t) => ({ testName: t.testName, measuredValue: t.measuredValue, unit: t.unit, result: t.result }));
-  const allPublicTests = tests.map((t) => ({ category: t.category, testName: t.testName, measuredValue: t.measuredValue, unit: t.unit, result: t.result }));
-  const adulterationPassed = tests.length > 0 && tests.filter((t) => t.category === "ADULTERATION").every((t) => t.result === "PASS");
   const beeActivityLabel = batch.envSnapshot.aiHealthScore >= 75 ? "High" : batch.envSnapshot.aiHealthScore >= 50 ? "Moderate" : "Low";
 
   return {
@@ -520,18 +354,6 @@ export function getPublicVerification(batchCode: string) {
       region: beekeeper.region,
       registrationStatus: beekeeper.registrationStatus,
     },
-    lab: report
-      ? {
-          overallResult: report.overallResult,
-          qualityGrade: report.qualityGrade,
-          qualityScore: report.qualityScore,
-          breakdown: report.breakdown,
-          selectedTests: consumerFriendlyTests,
-          allTests: allPublicTests,
-          adulterationPassed,
-          testedAt: report.createdAt,
-        }
-      : null,
     blockchain: blockchainRecord
       ? {
           transactionHash: blockchainRecord.transactionHash,
@@ -541,27 +363,16 @@ export function getPublicVerification(batchCode: string) {
           isDemo: blockchainRecord.isDemo,
         }
       : null,
-    timeline: buildTimeline(batch, sample, report, blockchainRecord),
+    timeline: buildTimeline(batch, blockchainRecord),
   };
 }
 
-function buildTimeline(
-  batch: HoneyBatch,
-  sample?: LabSample,
-  report?: LabReport,
-  blockchainRecord?: BlockchainRecord
-) {
+function buildTimeline(batch: HoneyBatch, blockchainRecord?: BlockchainRecord) {
   const events: { icon: string; label: string; date: string }[] = [];
   const dayBeforeHarvest = new Date(new Date(batch.harvestDate).getTime() - 24 * 3600 * 1000).toISOString();
   events.push({ icon: "hive", label: "Hive monitoring recorded", date: dayBeforeHarvest });
   events.push({ icon: "harvest", label: "Honey harvested", date: batch.harvestDate });
   events.push({ icon: "batch", label: `Batch ${batch.batchCode} created`, date: batch.createdAt });
-  if (sample) {
-    events.push({ icon: "lab-received", label: "Laboratory sample received", date: sample.receivedAt });
-  }
-  if (report) {
-    events.push({ icon: "lab-done", label: "Laboratory testing completed", date: report.createdAt });
-  }
   if (blockchainRecord) {
     events.push({ icon: "blockchain", label: "Batch registered on blockchain", date: blockchainRecord.timestamp });
     events.push({ icon: "consumer", label: "Consumer verification available", date: blockchainRecord.timestamp });

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BatchStatusBadge } from "@/components/batch/batch-status-badge";
-import { SendToLabButton } from "@/components/batch/send-to-lab-button";
 import { QrPanel } from "@/components/qr/qr-panel";
 import { BlockchainProof } from "@/components/blockchain/blockchain-proof";
 import { formatDate } from "@/lib/utils";
-import { getBatchById, getBlockchainRecordsByBatch, getHiveById, getLabReportByBatch, getLabSampleByBatchId } from "@/lib/db";
+import { getBatchById, getBlockchainRecordsByBatch, getHiveById } from "@/lib/db";
 
 export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/batches/[id]">) {
   const { id } = await params;
@@ -13,8 +13,6 @@ export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/
   if (!batch) notFound();
 
   const hive = getHiveById(batch.hiveId);
-  const sample = getLabSampleByBatchId(batch.id);
-  const report = getLabReportByBatch(batch.id);
   const blockchain = getBlockchainRecordsByBatch(batch.id)[0] ?? null;
 
   return (
@@ -41,8 +39,6 @@ export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/
             <Info label="Extraction" value={batch.extractionMethod} />
             <Info label="Storage Temp" value={`${batch.storageTemperature}°C`} />
             <Info label="Storage Location" value={batch.storageLocation} />
-            {batch.moisture !== undefined && <Info label="Moisture" value={`${batch.moisture}%`} />}
-            {batch.ph !== undefined && <Info label="pH" value={`${batch.ph}`} />}
           </CardContent>
         </Card>
 
@@ -59,27 +55,16 @@ export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/
         </Card>
       </div>
 
-      {batch.status === "DRAFT" && (
-        <Card className="border-honey/40 bg-accent/40">
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
-            <p className="text-sm">This batch has not been sent to the laboratory yet.</p>
-            <SendToLabButton batchId={batch.id} />
-          </CardContent>
-        </Card>
-      )}
-
-      {sample && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Laboratory Status</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Sample status: <span className="font-medium text-foreground">{sample.status.replace(/_/g, " ")}</span>
-            {report && (
-              <p className="mt-1">
-                Result: <span className="font-medium text-foreground">{report.overallResult}</span> · Grade {report.qualityGrade} · Score {report.qualityScore}/100
+      {batch.status === "REGISTRATION_FAILED" && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex items-start gap-3 p-5">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">Blockchain registration failed</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We couldn&apos;t register this batch on the blockchain. This is a demo network issue — try creating the batch again.
               </p>
-            )}
+            </div>
           </CardContent>
         </Card>
       )}

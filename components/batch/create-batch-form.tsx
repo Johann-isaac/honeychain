@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Send, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Hive } from "@/types";
@@ -37,7 +37,6 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [createdBatch, setCreatedBatch] = React.useState<{ id: string; batchCode: string } | null>(null);
-  const [sendingToLab, setSendingToLab] = React.useState(false);
 
   const selectedHive = hives.find((h) => h.id === fields.hiveId);
 
@@ -88,30 +87,17 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
     }
   }
 
-  async function handleSendToLab() {
-    if (!createdBatch) return;
-    setSendingToLab(true);
-    try {
-      await fetch(`/api/batches/${createdBatch.id}/send-to-lab`, { method: "POST" });
-      router.push(`/beekeeper/batches/${createdBatch.id}`);
-    } finally {
-      setSendingToLab(false);
-    }
-  }
-
   if (createdBatch) {
     return (
       <Card className="border-success/40 bg-success/5">
         <CardContent className="space-y-4 p-6 text-center">
-          <p className="text-sm font-medium text-success">Batch created successfully</p>
+          <CheckCircle2 className="mx-auto size-8 text-success" />
+          <p className="text-sm font-medium text-success">Batch created &amp; registered on the blockchain</p>
           <p className="font-display text-3xl">{createdBatch.batchCode}</p>
-          <p className="text-sm text-muted-foreground">Send this batch to the laboratory to begin quality testing.</p>
+          <p className="text-sm text-muted-foreground">A QR code is ready — consumers can now verify this batch&apos;s full transparency record.</p>
           <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={() => router.push(`/beekeeper/batches/${createdBatch.id}`)}>
-              View Batch
-            </Button>
-            <Button onClick={handleSendToLab} disabled={sendingToLab}>
-              <Send className="size-4" /> {sendingToLab ? "Sending…" : "Send to Laboratory"}
+            <Button onClick={() => router.push(`/beekeeper/batches/${createdBatch.id}`)}>
+              View Batch &amp; QR Code
             </Button>
           </div>
         </CardContent>
@@ -164,7 +150,7 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
-            {submitting ? "Creating…" : "Create Honey Batch"}
+            {submitting ? "Registering on blockchain…" : "Create Honey Batch"}
           </Button>
         </CardContent>
       </Card>

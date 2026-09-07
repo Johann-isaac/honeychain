@@ -1,5 +1,4 @@
 import { seededRandom, randRange } from "@/lib/prng";
-import { computeQuality, evaluateTestResult } from "@/lib/qualityService";
 import { createDeterministicRecord } from "@/lib/blockchainService";
 import type {
   Alert,
@@ -7,9 +6,6 @@ import type {
   BlockchainRecord,
   HoneyBatch,
   Hive,
-  LabReport,
-  LabSample,
-  LabTest,
   SensorReading,
   User,
 } from "@/types";
@@ -29,7 +25,6 @@ export const users: User[] = [
   { id: "usr_arjun", name: "Arjun Kumar", email: "beekeeper@honeychain.demo", role: "BEEKEEPER", createdAt: isoDaysAgo(620) },
   { id: "usr_lakshmi", name: "Lakshmi Devi", email: "lakshmi@honeychain.demo", role: "BEEKEEPER", createdAt: isoDaysAgo(410) },
   { id: "usr_ramesh", name: "Ramesh Iyer", email: "ramesh@honeychain.demo", role: "BEEKEEPER", createdAt: isoDaysAgo(95) },
-  { id: "usr_priya", name: "Dr. Priya Sundaram", email: "lab@honeychain.demo", role: "LAB_TECHNICIAN", createdAt: isoDaysAgo(700) },
 ];
 
 export const beekeepers: Beekeeper[] = [
@@ -64,8 +59,6 @@ export const beekeepers: Beekeeper[] = [
     joinedDate: isoDaysAgo(95),
   },
 ];
-
-export const labIdentity = { laboratoryId: "LAB-TN-042", name: "Tamil Nadu State Apiculture Testing Lab", technicianId: "TCH-001", technicianName: "Dr. Priya Sundaram" };
 
 // ---------------------------------------------------------------------------
 // Hives
@@ -248,7 +241,9 @@ export const alerts: Alert[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Honey batches
+// Honey batches — every batch is registered on the demo blockchain the
+// moment it's created (see lib/db.ts createBatch), so all seed batches
+// are already BLOCKCHAIN_REGISTERED.
 // ---------------------------------------------------------------------------
 
 export const batches: HoneyBatch[] = [
@@ -256,7 +251,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00975", batchCode: "HC-2026-00975", hiveId: "hv_h-001", beekeeperId: "bk_arjun",
     harvestDate: isoDaysAgo(20), quantity: 22.0, honeyType: "Multifloral Honey", floralSource: "Mixed wildflower",
     extractionMethod: "Cold Extraction", storageTemperature: 24, storageLocation: "Coimbatore Central Store",
-    moisture: 18.2, ph: 3.9, status: "BLOCKCHAIN_REGISTERED",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 33.8, humidity: 59, hiveWeight: 41.2, aiHealthScore: 85 },
     createdAt: isoDaysAgo(19.9),
   },
@@ -264,7 +259,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00978", batchCode: "HC-2026-00978", hiveId: "hv_h-002", beekeeperId: "bk_arjun",
     harvestDate: isoDaysAgo(15), quantity: 19.5, honeyType: "Eucalyptus Honey", floralSource: "Eucalyptus blossom",
     extractionMethod: "Cold Extraction", storageTemperature: 23, storageLocation: "Coimbatore Central Store",
-    moisture: 16.9, ph: 4.0, status: "BLOCKCHAIN_REGISTERED",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 34.1, humidity: 57, hiveWeight: 44.8, aiHealthScore: 90 },
     createdAt: isoDaysAgo(14.9),
   },
@@ -272,7 +267,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00982", batchCode: "HC-2026-00982", hiveId: "hv_h-003", beekeeperId: "bk_arjun",
     harvestDate: isoDaysAgo(3), quantity: 24.5, honeyType: "Wildflower Honey", floralSource: "Coffee blossom & wildflower",
     extractionMethod: "Cold Extraction (Unheated)", storageTemperature: 22, storageLocation: "Coimbatore Central Store",
-    moisture: 17.8, ph: 4.1, status: "BLOCKCHAIN_REGISTERED",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 34.2, humidity: 62, hiveWeight: 48.6, aiHealthScore: 87 },
     createdAt: isoDaysAgo(2.9),
   },
@@ -280,7 +275,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00985", batchCode: "HC-2026-00985", hiveId: "hv_h-004", beekeeperId: "bk_arjun",
     harvestDate: isoDaysAgo(5), quantity: 15.2, honeyType: "Forest Honey", floralSource: "Mixed forest flora",
     extractionMethod: "Cold Extraction", storageTemperature: 25, storageLocation: "Coimbatore Central Store",
-    status: "IN_TESTING",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 33.0, humidity: 74, hiveWeight: 37.9, aiHealthScore: 63 },
     createdAt: isoDaysAgo(4.9),
   },
@@ -288,7 +283,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00990", batchCode: "HC-2026-00990", hiveId: "hv_h-005", beekeeperId: "bk_arjun",
     harvestDate: isoDaysAgo(2), quantity: 20.0, honeyType: "Multifloral Honey", floralSource: "Mixed wildflower",
     extractionMethod: "Cold Extraction", storageTemperature: 23, storageLocation: "Coimbatore Central Store",
-    status: "AWAITING_LAB",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 34.0, humidity: 60, hiveWeight: 42.5, aiHealthScore: 84 },
     createdAt: isoDaysAgo(1.9),
   },
@@ -296,7 +291,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00993", batchCode: "HC-2026-00993", hiveId: "hv_h-006", beekeeperId: "bk_lakshmi",
     harvestDate: isoDaysAgo(1), quantity: 17.8, honeyType: "Nilgiri Honey", floralSource: "Nilgiri hill flora",
     extractionMethod: "Cold Extraction", storageTemperature: 22, storageLocation: "Ooty Collection Center",
-    status: "DRAFT",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 32.6, humidity: 55, hiveWeight: 40.1, aiHealthScore: 88 },
     createdAt: isoDaysAgo(0.9),
   },
@@ -304,7 +299,7 @@ export const batches: HoneyBatch[] = [
     id: "hb_00996", batchCode: "HC-2026-00996", hiveId: "hv_h-007", beekeeperId: "bk_lakshmi",
     harvestDate: isoDaysAgo(8), quantity: 14.0, honeyType: "Nilgiri Honey", floralSource: "Nilgiri hill flora",
     extractionMethod: "Hot Extraction", storageTemperature: 27, storageLocation: "Ooty Collection Center",
-    moisture: 22.4, ph: 4.6, status: "LAB_FAILED",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 33.5, humidity: 78, hiveWeight: 36.4, aiHealthScore: 58 },
     createdAt: isoDaysAgo(7.9),
   },
@@ -312,168 +307,17 @@ export const batches: HoneyBatch[] = [
     id: "hb_00999", batchCode: "HC-2026-00999", hiveId: "hv_h-008", beekeeperId: "bk_lakshmi",
     harvestDate: isoDaysAgo(12), quantity: 21.3, honeyType: "Eucalyptus Honey", floralSource: "Eucalyptus blossom",
     extractionMethod: "Cold Extraction", storageTemperature: 23, storageLocation: "Ooty Collection Center",
-    moisture: 19.5, ph: 3.8, status: "BLOCKCHAIN_REGISTERED",
+    status: "BLOCKCHAIN_REGISTERED",
     envSnapshot: { temperature: 34.4, humidity: 58, hiveWeight: 45.0, aiHealthScore: 81 },
     createdAt: isoDaysAgo(11.9),
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Lab tests helper templates
+// Blockchain records — one per seed batch, mirroring what createBatch()
+// does live for batches created through the UI.
 // ---------------------------------------------------------------------------
 
-interface TestTemplate {
-  category: LabTest["category"];
-  testName: string;
-  unit: string;
-  expectedRange: string;
-}
-
-export const testTemplates: TestTemplate[] = [
-  { category: "PHYSICAL", testName: "Moisture", unit: "%", expectedRange: "15-20" },
-  { category: "PHYSICAL", testName: "Color", unit: "", expectedRange: "Extra Light Amber - Dark Amber" },
-  { category: "PHYSICAL", testName: "Aroma", unit: "", expectedRange: "Characteristic floral aroma" },
-  { category: "PHYSICAL", testName: "Texture", unit: "", expectedRange: "Smooth & viscous" },
-  { category: "PHYSICAL", testName: "Specific Gravity", unit: "", expectedRange: "1.38-1.45" },
-  { category: "CHEMICAL", testName: "pH", unit: "", expectedRange: "3.5-4.5" },
-  { category: "CHEMICAL", testName: "Electrical Conductivity", unit: "mS/cm", expectedRange: "0.2-0.8" },
-  { category: "CHEMICAL", testName: "HMF (Hydroxymethylfurfural)", unit: "mg/kg", expectedRange: "<=40" },
-  { category: "CHEMICAL", testName: "Reducing Sugars", unit: "%", expectedRange: ">=65" },
-  { category: "CHEMICAL", testName: "Sucrose", unit: "%", expectedRange: "<=5" },
-  { category: "CHEMICAL", testName: "Free Acidity", unit: "meq/kg", expectedRange: "<=50" },
-  { category: "ADULTERATION", testName: "Sugar Syrup Screening", unit: "", expectedRange: "Negative" },
-  { category: "ADULTERATION", testName: "Water Addition Screening", unit: "", expectedRange: "Negative" },
-  { category: "ADULTERATION", testName: "Artificial Sweetener Screening", unit: "", expectedRange: "Negative" },
-  { category: "ADULTERATION", testName: "Other Adulteration Indicators", unit: "", expectedRange: "Negative" },
-  { category: "MICROBIOLOGICAL", testName: "Yeast Count", unit: "CFU/g", expectedRange: "<=10" },
-  { category: "MICROBIOLOGICAL", testName: "Mold Count", unit: "CFU/g", expectedRange: "<=10" },
-  { category: "MICROBIOLOGICAL", testName: "Total Microbial Count", unit: "CFU/g", expectedRange: "<=100" },
-];
-
-function buildTest(sampleId: string, idx: number, template: TestTemplate, measuredValue: number | string, remarks = ""): LabTest {
-  const partial = { measuredValue, expectedRange: template.expectedRange, category: template.category };
-  const result = evaluateTestResult(partial);
-  return {
-    id: `${sampleId}_t${idx}`,
-    sampleId,
-    category: template.category,
-    testName: template.testName,
-    measuredValue,
-    unit: template.unit,
-    expectedRange: template.expectedRange,
-    result,
-    remarks,
-  };
-}
-
-function buildCleanPassTestSet(sampleId: string, moisture: number, ph: number): LabTest[] {
-  const values: (number | string)[] = [
-    moisture, "Amber", "Characteristic floral aroma", "Smooth & viscous", 1.41,
-    ph, 0.45, 18, 68, 3.2, 28,
-    "Negative", "Negative", "Negative", "Negative",
-    4, 2, 45,
-  ];
-  return testTemplates.map((t, i) => buildTest(sampleId, i, t, values[i]));
-}
-
-export const labSamples: LabSample[] = [
-  { id: "ls_00975", batchId: "hb_00975", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(19), status: "COMPLETED", priority: "NORMAL" },
-  { id: "ls_00978", batchId: "hb_00978", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(14), status: "COMPLETED", priority: "NORMAL" },
-  { id: "ls_00982", batchId: "hb_00982", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(2.5), status: "COMPLETED", priority: "HIGH" },
-  { id: "ls_00985", batchId: "hb_00985", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(4), status: "TESTING_IN_PROGRESS", priority: "NORMAL" },
-  { id: "ls_00990", batchId: "hb_00990", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(1.5), status: "PENDING", priority: "HIGH" },
-  { id: "ls_00996", batchId: "hb_00996", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(7), status: "COMPLETED", priority: "NORMAL" },
-  { id: "ls_00999", batchId: "hb_00999", laboratoryId: labIdentity.laboratoryId, receivedAt: isoDaysAgo(11), status: "COMPLETED", priority: "NORMAL" },
-];
-
-export const labTests: LabTest[] = [];
-
-// Sample 00975 — clean pass, one minor physical remark (still A-range)
-labTests.push(...buildCleanPassTestSet("ls_00975", 18.2, 3.9));
-const t975Texture = labTests.find((t) => t.sampleId === "ls_00975" && t.testName === "Texture")!;
-t975Texture.measuredValue = "Slightly grainy — early crystallization";
-t975Texture.result = "FAIL";
-t975Texture.remarks = "Natural crystallization noted; does not indicate adulteration.";
-
-// Sample 00978 — clean pass
-labTests.push(...buildCleanPassTestSet("ls_00978", 16.9, 4.0));
-
-// Sample 00982 — hero batch, clean pass
-labTests.push(...buildCleanPassTestSet("ls_00982", 17.8, 4.1));
-
-// Sample 00985 — testing in progress: only physical tests recorded so far
-const physicalOnly = testTemplates
-  .map((t, i) => ({ t, i }))
-  .filter(({ t }) => t.category === "PHYSICAL");
-const partialValues: (number | string)[] = [19.6, "Amber", "Characteristic floral aroma", "Smooth & viscous", 1.4];
-physicalOnly.forEach(({ t, i }, idx) => {
-  labTests.push(buildTest("ls_00985", i, t, partialValues[idx]));
-});
-
-// Sample 00990 — pending, no tests entered yet (technician fills this live)
-
-// Sample 00996 — adulteration detected -> fails
-const failValues: (number | string)[] = [
-  22.4, "Dark Amber", "Faint, atypical aroma", "Thin & runny", 1.33,
-  4.6, 1.1, 12, 58, 9.4, 22,
-  "Positive", "Positive", "Negative", "Negative",
-  6, 3, 40,
-];
-testTemplates.forEach((t, i) => {
-  labTests.push(buildTest("ls_00996", i, t, failValues[i], t.testName.includes("Screening") && failValues[i] === "Positive" ? "Adulteration indicators detected in sample." : ""));
-});
-
-// Sample 00999 — mostly clean with a couple of moderate deviations
-const mixedValues: (number | string)[] = [
-  19.5, "Amber", "Characteristic floral aroma", "Smooth & viscous", 1.43,
-  3.8, 0.52, 30, 66, 4.1, 33,
-  "Negative", "Negative", "Negative", "Negative",
-  5, 4, 60,
-];
-testTemplates.forEach((t, i) => {
-  labTests.push(buildTest("ls_00999", i, t, mixedValues[i]));
-});
-
-// ---------------------------------------------------------------------------
-// Lab reports
-// ---------------------------------------------------------------------------
-
-function buildReport(sampleId: string, batchId: string, createdAtIso: string): LabReport {
-  const tests = labTests.filter((t) => t.sampleId === sampleId);
-  const computed = computeQuality(tests);
-  return {
-    id: `lr_${sampleId}`,
-    sampleId,
-    batchId,
-    technicianId: labIdentity.technicianId,
-    qualityScore: computed.qualityScore,
-    qualityGrade: computed.qualityGrade,
-    overallResult: computed.overallResult,
-    breakdown: computed.breakdown,
-    remarks:
-      computed.overallResult === "PASSED"
-        ? "Sample meets HoneyChain demo quality thresholds across physical, chemical, and microbiological parameters."
-        : "Sample failed adulteration screening. Batch withheld from blockchain registration pending investigation.",
-    createdAt: createdAtIso,
-    digitallySigned: true,
-  };
-}
-
-export const labReports: LabReport[] = [
-  buildReport("ls_00975", "hb_00975", isoDaysAgo(18.8)),
-  buildReport("ls_00978", "hb_00978", isoDaysAgo(13.8)),
-  buildReport("ls_00982", "hb_00982", isoDaysAgo(2.2)),
-  buildReport("ls_00996", "hb_00996", isoDaysAgo(6.7)),
-  buildReport("ls_00999", "hb_00999", isoDaysAgo(10.7)),
-];
-
-// ---------------------------------------------------------------------------
-// Blockchain records
-// ---------------------------------------------------------------------------
-
-export const blockchainRecords: BlockchainRecord[] = [
-  createDeterministicRecord("hb_00975", { batchId: "hb_00975", report: "lr_ls_00975" }, "LAB_REPORT", isoDaysAgo(18.7), "seed-975"),
-  createDeterministicRecord("hb_00978", { batchId: "hb_00978", report: "lr_ls_00978" }, "LAB_REPORT", isoDaysAgo(13.7), "seed-978"),
-  createDeterministicRecord("hb_00982", { batchId: "hb_00982", report: "lr_ls_00982" }, "LAB_REPORT", isoDaysAgo(2.1), "seed-982"),
-  createDeterministicRecord("hb_00999", { batchId: "hb_00999", report: "lr_ls_00999" }, "LAB_REPORT", isoDaysAgo(10.6), "seed-999"),
-];
+export const blockchainRecords: BlockchainRecord[] = batches.map((batch) =>
+  createDeterministicRecord(batch.id, { batchCode: batch.batchCode, harvestDate: batch.harvestDate }, batch.createdAt, `seed-${batch.batchCode}`)
+);

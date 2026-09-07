@@ -3,7 +3,7 @@
 // data layer (lib/db.ts) can be swapped for a real database without
 // touching consumers of these types.
 
-export type UserRole = "BEEKEEPER" | "LAB_TECHNICIAN" | "CONSUMER";
+export type UserRole = "BEEKEEPER" | "CONSUMER";
 
 export interface User {
   id: string;
@@ -72,13 +72,11 @@ export interface Alert {
   dismissed: boolean;
 }
 
-export type BatchStatus =
-  | "DRAFT"
-  | "AWAITING_LAB"
-  | "IN_TESTING"
-  | "LAB_PASSED"
-  | "LAB_FAILED"
-  | "BLOCKCHAIN_REGISTERED";
+// Every batch is registered on the (demo) blockchain the moment it's
+// created — "DRAFT" only exists for the brief window before that
+// registration call resolves, and "REGISTRATION_FAILED" is a defensive
+// fallback if it ever throws.
+export type BatchStatus = "DRAFT" | "BLOCKCHAIN_REGISTERED" | "REGISTRATION_FAILED";
 
 export interface HoneyBatch {
   id: string;
@@ -92,8 +90,6 @@ export interface HoneyBatch {
   extractionMethod: string;
   storageTemperature: number;
   storageLocation: string;
-  moisture?: number;
-  ph?: number;
   status: BatchStatus;
   // Environmental snapshot captured at harvest time
   envSnapshot: {
@@ -103,58 +99,6 @@ export interface HoneyBatch {
     aiHealthScore: number;
   };
   createdAt: string;
-}
-
-export type SampleStatus =
-  | "PENDING"
-  | "TESTING_IN_PROGRESS"
-  | "COMPLETED";
-
-export type SamplePriority = "NORMAL" | "HIGH";
-
-export interface LabSample {
-  id: string;
-  batchId: string;
-  laboratoryId: string;
-  receivedAt: string;
-  status: SampleStatus;
-  priority: SamplePriority;
-}
-
-export type TestResult = "PASS" | "FAIL";
-
-export interface LabTest {
-  id: string;
-  sampleId: string;
-  category: "PHYSICAL" | "CHEMICAL" | "ADULTERATION" | "MICROBIOLOGICAL";
-  testName: string;
-  measuredValue: number | string;
-  unit: string;
-  expectedRange: string;
-  result: TestResult;
-  remarks: string;
-}
-
-export type OverallResult = "PASSED" | "FAILED";
-export type QualityGrade = "A+" | "A" | "B" | "C" | "REJECTED";
-
-export interface LabReport {
-  id: string;
-  sampleId: string;
-  batchId: string;
-  technicianId: string;
-  qualityScore: number;
-  qualityGrade: QualityGrade;
-  overallResult: OverallResult;
-  breakdown: {
-    purity: number;
-    chemicalQuality: number;
-    physicalQuality: number;
-    microbiologicalSafety: number;
-  };
-  remarks: string;
-  createdAt: string;
-  digitallySigned: boolean;
 }
 
 export interface BlockchainRecord {
@@ -167,7 +111,6 @@ export interface BlockchainRecord {
   status: "CONFIRMED" | "PENDING" | "FAILED";
   isDemo: boolean;
   dataHash: string;
-  recordType: "BATCH_REGISTRATION" | "LAB_REPORT";
 }
 
 export interface AiHealthResult {
@@ -194,4 +137,27 @@ export interface YieldPrediction {
     value: number; // 0-100 contribution score
   }[];
   history: { label: string; actual?: number; predicted?: number }[];
+}
+
+// Aggregate "next expected yield" forecast shown on the beekeeper dashboard,
+// combining every hive's individual YieldPrediction.
+export interface YieldForecast {
+  totalPredictedKg: number;
+  averageConfidence: number;
+  nextHarvest: {
+    hiveId: string;
+    hiveCode: string;
+    hiveName: string;
+    predictedYieldKg: number;
+    expectedHarvestDate: string;
+    confidence: number;
+  } | null;
+  perHive: {
+    hiveId: string;
+    hiveCode: string;
+    hiveName: string;
+    predictedYieldKg: number;
+    expectedHarvestDate: string;
+    confidence: number;
+  }[];
 }
