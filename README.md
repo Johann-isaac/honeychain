@@ -8,7 +8,9 @@ A blockchain-based honey traceability platform (SIH) with a real ESP32 hive-moni
 - Tailwind CSS v4, Recharts, Lucide icons
 - **Supabase (Postgres)** for all persistence — schema in [`supabase/schema.sql`](supabase/schema.sql)
 - Mock blockchain provider (`lib/blockchainService.ts`) — clearly labeled "Demo Blockchain Transaction" everywhere in the UI
-- ESP32 firmware in [`firmware/esp32_hive_monitor/`](firmware/esp32_hive_monitor/esp32_hive_monitor.ino)
+- ESP32 firmware — two options depending on whether a hive has WiFi (see "Registering a hive" below):
+  - [`firmware/esp32_hive_monitor/`](firmware/esp32_hive_monitor/esp32_hive_monitor.ino) — direct WiFi, one device per hive
+  - [`firmware/esp32_hive_node_lora/`](firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino) + [`firmware/esp32_lora_gateway/`](firmware/esp32_lora_gateway/esp32_lora_gateway.ino) — for hives with no WiFi coverage, relayed over a 433 MHz LoRa link to one WiFi gateway
 - `jsqr` for in-browser QR scanning via the device camera
 
 There is no login system yet — the app operates as a single beekeeper account (auto-created on first run), who can register many hives, each with its own ESP32.
@@ -41,13 +43,31 @@ Open http://localhost:3000.
 
 ## Registering a hive and flashing the ESP32
 
-1. On the website: `/beekeeper/hives` → **Register Hive**. This generates a unique **Hive ID** (e.g. `HIVE-001`) — one per physical hive.
-2. Open [`firmware/esp32_hive_monitor/esp32_hive_monitor.ino`](firmware/esp32_hive_monitor/esp32_hive_monitor.ino) in the Arduino IDE and fill in the placeholders at the top: WiFi credentials, `HIVE_ID` (from step 1), `SERVER_URL` (your deployed domain, or `http://<your-lan-ip>:3000` while testing on the same network), and `DEVICE_API_KEY` (must match `HIVE_DEVICE_API_KEY` from `.env.local`).
-3. Install the two required Arduino libraries: **DHT sensor library** (Adafruit) and **HX711** (bogde). WiFi/HTTPClient ship with the ESP32 board package.
-4. Flash it, open Serial Monitor at 115200 baud. Send `t` to tare the load cell with an empty platform, and `c` to calibrate against a known weight (instructions print to Serial).
-5. Once WiFi connects, the device posts a reading every `SEND_INTERVAL` (5 minutes by default — drop to 10 seconds while testing) to `POST /api/hive-data`, authenticated with `Authorization: Bearer <HIVE_DEVICE_API_KEY>`.
+Either path ends the same way: the website's `POST /api/hive-data` never changes, and neither does the JSON payload shape. Start with:
 
-Every ESP32 maps 1:1 to a `hive_code`, and one beekeeper account can have many hives/devices.
+On the website: `/beekeeper/hives` → **Register Hive**. This generates a unique **Hive ID** (e.g. `HIVE-001`) — one per physical hive. Every ESP32 maps 1:1 to a `hive_code`, and one beekeeper account can have many hives/devices.
+
+### Option A — hive has WiFi coverage
+
+1. Open [`firmware/esp32_hive_monitor/esp32_hive_monitor.ino`](firmware/esp32_hive_monitor/esp32_hive_monitor.ino) in the Arduino IDE and fill in the placeholders at the top: WiFi credentials, `HIVE_ID`, `SERVER_URL` (your deployed domain, or `http://<your-lan-ip>:3000` while testing on the same network), and `DEVICE_API_KEY` (must match `HIVE_DEVICE_API_KEY` from `.env.local`).
+2. Install the two required Arduino libraries: **DHT sensor library** (Adafruit) and **HX711** (bogde). WiFi/HTTPClient ship with the ESP32 board package.
+3. Flash it, open Serial Monitor at 115200 baud. Send `t` to tare the load cell with an empty platform, and `c` to calibrate against a known weight (instructions print to Serial).
+4. Once WiFi connects, the device posts a reading every `SEND_INTERVAL` (5 minutes by default — drop to 10 seconds while testing) directly to `POST /api/hive-data`.
+
+### Option B — hive has NO WiFi coverage (433 MHz LoRa)
+
+One hive node per hive (sensors + LoRa transmitter, no WiFi needed), relaying through a single shared gateway (LoRa receiver + WiFi) placed anywhere with internet access. The gateway needs no per-hive setup — it just forwards whatever it hears.
+
+```
+Hive node (sensors + LoRa TX)  --433 MHz-->  Gateway (LoRa RX + WiFi)  --HTTPS-->  /api/hive-data
+```
+
+1. **Per hive**, flash [`firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino`](firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino) onto that hive's ESP32, setting `HIVE_ID` at the top (each hive needs its own). Wire its LoRa module per the pinout comment at the top of the file.
+2. **Once**, flash [`firmware/esp32_lora_gateway/esp32_lora_gateway.ino`](firmware/esp32_lora_gateway/esp32_lora_gateway.ino) onto a separate ESP32 that has WiFi/internet access, filling in WiFi credentials, `SERVER_URL`, and `DEVICE_API_KEY`.
+3. Install the **LoRa** library by Sandeep Mistry on both boards (plus DHT/HX711 on the hive node only). `LORA_FREQUENCY` and the LoRa pin wiring must match exactly between every hive node and the gateway.
+4. Flash both, open Serial Monitor on each. The hive node transmits over LoRa on its own schedule; the gateway prints every packet it receives (with RSSI/SNR) and relays it to the website — you'll see identical `HTTP Response: 201` output to Option A, just arriving via the gateway instead of directly.
+
+⚠️ Use the frequency your actual LoRa modules are built for (433 MHz is the common hobbyist band in India) — transmitting on the wrong frequency for your hardware simply won't work.
 
 ## Sensors → data model
 
