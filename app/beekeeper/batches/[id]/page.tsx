@@ -9,11 +9,11 @@ import { getBatchById, getBlockchainRecordsByBatch, getHiveById } from "@/lib/db
 
 export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/batches/[id]">) {
   const { id } = await params;
-  const batch = getBatchById(id);
+  const batch = await getBatchById(id);
   if (!batch) notFound();
 
-  const hive = getHiveById(batch.hiveId);
-  const blockchain = getBlockchainRecordsByBatch(batch.id)[0] ?? null;
+  const [hive, blockchainRecords] = await Promise.all([getHiveById(batch.hiveId), getBlockchainRecordsByBatch(batch.id)]);
+  const blockchain = blockchainRecords[0] ?? null;
 
   return (
     <div className="space-y-6">

@@ -2,17 +2,17 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BatchList } from "@/components/batch/batch-list";
-import { DEFAULT_BEEKEEPER_ID, getBatchesByBeekeeper, getHiveById } from "@/lib/db";
+import { getDefaultBeekeeperId, getBatchesByBeekeeper, getHiveById } from "@/lib/db";
 
 // Reads live mutable state (lib/db.ts), so this must be rendered per request rather than frozen at build time.
 export const dynamic = "force-dynamic";
 
 export default async function BatchesPage() {
-  const batches = getBatchesByBeekeeper(DEFAULT_BEEKEEPER_ID);
-  const hiveCodes: Record<string, string> = {};
-  for (const batch of batches) {
-    hiveCodes[batch.hiveId] = getHiveById(batch.hiveId)?.hiveCode ?? "—";
-  }
+  const beekeeperId = await getDefaultBeekeeperId();
+  const batches = await getBatchesByBeekeeper(beekeeperId);
+  const uniqueHiveIds = [...new Set(batches.map((b) => b.hiveId))];
+  const hiveEntries = await Promise.all(uniqueHiveIds.map(async (hiveId) => [hiveId, (await getHiveById(hiveId))?.hiveCode ?? "—"] as const));
+  const hiveCodes = Object.fromEntries(hiveEntries);
 
   return (
     <div className="space-y-6">

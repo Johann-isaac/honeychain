@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Hexagon, ShieldCheck, AlertTriangle, Droplet, CalendarClock, Package, ArrowRight } from "lucide-react";
+import { Hexagon, ShieldCheck, AlertTriangle, Droplet, CalendarClock, Package, ArrowRight, Plus } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { HiveCard } from "@/components/hive/hive-card";
 import { AlertItem } from "@/components/hive/alert-item";
 import { NextYieldForecast } from "@/components/dashboard/next-yield-forecast";
 import { Button } from "@/components/ui/button";
 import {
-  DEFAULT_BEEKEEPER_ID,
+  getDefaultBeekeeperId,
   getAlertsForBeekeeper,
   getBeekeeperById,
   getBeekeeperDashboard,
@@ -20,11 +20,24 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function BeekeeperDashboard() {
-  const beekeeper = getBeekeeperById(DEFAULT_BEEKEEPER_ID)!;
-  const kpis = getBeekeeperDashboard(DEFAULT_BEEKEEPER_ID);
-  const forecast = getBeekeeperYieldForecast(DEFAULT_BEEKEEPER_ID);
-  const hives = getHivesByBeekeeper(DEFAULT_BEEKEEPER_ID);
-  const alerts = getAlertsForBeekeeper(DEFAULT_BEEKEEPER_ID).slice(0, 3);
+  const beekeeperId = await getDefaultBeekeeperId();
+  const beekeeper = (await getBeekeeperById(beekeeperId))!;
+  const [kpis, forecast, hives, allAlerts] = await Promise.all([
+    getBeekeeperDashboard(beekeeperId),
+    getBeekeeperYieldForecast(beekeeperId),
+    getHivesByBeekeeper(beekeeperId),
+    getAlertsForBeekeeper(beekeeperId),
+  ]);
+  const alerts = allAlerts.slice(0, 3);
+
+  const topHives = await Promise.all(
+    hives.slice(0, 3).map(async (hive) => ({
+      hive,
+      reading: await getLatestSensorReading(hive.id),
+      estimatedYieldKg: (await getHiveYieldPrediction(hive.id))?.predictedYieldKg,
+    }))
+  );
+
   const firstName = beekeeper.name.split(" ")[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -49,27 +62,35 @@ export default async function BeekeeperDashboard() {
         <KpiCard label="Total Honey Batches" value={kpis.totalBatches} icon={Package} />
       </div>
 
-      <NextYieldForecast forecast={forecast} />
+      {hives.length > 0 && <NextYieldForecast forecast={forecast} />}
 
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg">Your Bee Hives</h2>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/beekeeper/hives">
-              View all <ArrowRight className="size-3.5" />
-            </Link>
-          </Button>
+          {hives.length > 0 && (
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/beekeeper/hives">
+                View all <ArrowRight className="size-3.5" />
+              </Link>
+            </Button>
+          )}
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {hives.slice(0, 3).map((hive) => (
-            <HiveCard
-              key={hive.id}
-              hive={hive}
-              reading={getLatestSensorReading(hive.id)}
-              estimatedYieldKg={getHiveYieldPrediction(hive.id)?.predictedYieldKg}
-            />
-          ))}
-        </div>
+        {topHives.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">No hives registered yet.</p>
+            <Button asChild size="sm" className="mt-3">
+              <Link href="/beekeeper/hives/new">
+                <Plus className="size-4" /> Register your first hive
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {topHives.map(({ hive, reading, estimatedYieldKg }) => (
+              <HiveCard key={hive.id} hive={hive} reading={reading} estimatedYieldKg={estimatedYieldKg} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section>

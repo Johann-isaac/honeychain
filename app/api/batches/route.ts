@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DEFAULT_BEEKEEPER_ID, createBatch, getBatchesByBeekeeper, getHiveById } from "@/lib/db";
+import { getDefaultBeekeeperId, createBatch, getBatchesByBeekeeper, getHiveById } from "@/lib/db";
 import { ValidationError, requirePositiveNumber, requireString, sanitizeText } from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
-  const beekeeperId = request.nextUrl.searchParams.get("beekeeperId") ?? DEFAULT_BEEKEEPER_ID;
-  return NextResponse.json({ batches: getBatchesByBeekeeper(beekeeperId) });
+  const beekeeperId = request.nextUrl.searchParams.get("beekeeperId") ?? (await getDefaultBeekeeperId());
+  return NextResponse.json({ batches: await getBatchesByBeekeeper(beekeeperId) });
 }
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const hiveId = requireString(body.hiveId, "Hive");
-    const hive = getHiveById(hiveId);
+    const hive = await getHiveById(hiveId);
     if (!hive) throw new ValidationError("Selected hive does not exist.");
 
     const harvestDate = requireString(body.harvestDate, "Harvest date");

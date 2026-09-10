@@ -3,23 +3,13 @@
 // data layer (lib/db.ts) can be swapped for a real database without
 // touching consumers of these types.
 
-export type UserRole = "BEEKEEPER" | "CONSUMER";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  createdAt: string;
-}
-
 export type RegistrationStatus = "VERIFIED" | "PENDING" | "SUSPENDED";
 
 export interface Beekeeper {
   id: string;
-  userId: string;
   beekeeperCode: string;
   name: string;
+  email: string;
   region: string;
   registrationStatus: RegistrationStatus;
   phone?: string;

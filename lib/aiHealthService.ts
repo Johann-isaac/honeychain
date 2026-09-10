@@ -1,4 +1,4 @@
-import type { AiHealthResult, Hive, HoneyBatch, SensorReading, YieldPrediction } from "@/types";
+import type { AiHealthResult, AlertSeverity, Hive, HoneyBatch, SensorReading, YieldPrediction } from "@/types";
 
 // aiHealthService — deterministic, decision-support calculations only.
 //
@@ -145,4 +145,70 @@ export function predictYield(hive: Hive, readings: SensorReading[], pastBatches:
   ];
 
   return { predictedYieldKg, expectedHarvestDate, confidence, factors, history };
+}
+
+export interface DerivedAlert {
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  recommendation: string;
+}
+
+// Turns the latest live sensor readings for one hive into alert candidates.
+// lib/db.ts persists these (deduped by hive + title) so a beekeeper can
+// dismiss one without it silently reappearing on the next page load.
+export function deriveHiveAlerts(readings: SensorReading[]): DerivedAlert[] {
+  const recent = readings.slice(-24);
+  const latest = recent[recent.length - 1] ?? readings[readings.length - 1];
+  if (!latest) return [];
+
+  const alerts: DerivedAlert[] = [];
+
+  if (latest.humidity > 75) {
+    alerts.push({
+      severity: "WARNING",
+      title: "Elevated humidity",
+      message: `Humidity has remained above the preferred range (currently ${latest.humidity}%).`,
+      recommendation: "Check hive ventilation and consider relocating to a drier microsite.",
+    });
+  }
+
+  if (latest.temperature > 38 || latest.temperature < 30) {
+    alerts.push({
+      severity: "WARNING",
+      title: "Temperature out of range",
+      message: `Brood-chamber temperature is ${latest.temperature}°C, outside the typical band.`,
+      recommendation: "Inspect hive insulation and placement.",
+    });
+  }
+
+  if (latest.vibration) {
+    alerts.push({
+      severity: "CRITICAL",
+      title: "Vibration detected",
+      message: "The vibration sensor has triggered, which can indicate disturbance or swarming activity.",
+      recommendation: "Inspect the hive promptly to rule out external disturbance.",
+    });
+  }
+
+  const weights = recent.map((r) => r.weight);
+  const weightTrend = weights.length >= 2 ? weights[weights.length - 1] - weights[0] : 0;
+
+  if (weightTrend < -0.5) {
+    alerts.push({
+      severity: "WARNING",
+      title: "Hive weight declining",
+      message: "Hive weight has dropped, which can indicate robbing, pests, or a failing nectar flow.",
+      recommendation: "Inspect for signs of robbing, pests, or a failing nectar flow.",
+    });
+  } else if (weightTrend > 0.3) {
+    alerts.push({
+      severity: "INFO",
+      title: "Honey storage weight increasing normally",
+      message: "Hive weight has increased steadily, consistent with an active nectar flow.",
+      recommendation: "No action needed. Continue routine monitoring.",
+    });
+  }
+
+  return alerts;
 }

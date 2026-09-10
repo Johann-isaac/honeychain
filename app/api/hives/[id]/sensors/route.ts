@@ -13,5 +13,5 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const range = (request.nextUrl.searchParams.get("range") ?? "24h").toLowerCase();
   const hours = RANGE_HOURS[range] ?? 24;
-  return NextResponse.json({ readings: getSensorReadings(id, hours) });
+  return NextResponse.json({ readings: await getSensorReadings(id, hours) });
 }

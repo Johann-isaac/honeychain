@@ -4,7 +4,7 @@ import { generateBatchQrDataUrl, getVerificationUrl } from "@/lib/qrService";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const batch = getBatchById(id);
+  const batch = await getBatchById(id);
   if (!batch) return NextResponse.json({ error: "Batch not found" }, { status: 404 });
 
   const origin = request.nextUrl.origin;

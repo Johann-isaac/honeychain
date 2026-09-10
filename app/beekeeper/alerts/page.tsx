@@ -1,12 +1,12 @@
 import { AlertItem } from "@/components/hive/alert-item";
-import { DEFAULT_BEEKEEPER_ID, getAlertsForBeekeeper, getHivesByBeekeeper } from "@/lib/db";
+import { getDefaultBeekeeperId, getAlertsForBeekeeper, getHivesByBeekeeper } from "@/lib/db";
 
 // Reads live mutable state (lib/db.ts), so this must be rendered per request rather than frozen at build time.
 export const dynamic = "force-dynamic";
 
 export default async function AlertsPage() {
-  const alerts = getAlertsForBeekeeper(DEFAULT_BEEKEEPER_ID);
-  const hives = getHivesByBeekeeper(DEFAULT_BEEKEEPER_ID);
+  const beekeeperId = await getDefaultBeekeeperId();
+  const [alerts, hives] = await Promise.all([getAlertsForBeekeeper(beekeeperId), getHivesByBeekeeper(beekeeperId)]);
 
   return (
     <div className="space-y-6">

@@ -36,7 +36,7 @@ const whyBlockchain = [
 ];
 
 export default async function LandingPage() {
-  const stats = await Promise.resolve(getPlatformStats());
+  const stats = await getPlatformStats();
 
   return (
     <div className="bg-honeycomb">

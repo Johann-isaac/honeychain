@@ -3,13 +3,19 @@ import { getHiveById, getHiveHealth, getHiveYieldPrediction, getLatestSensorRead
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const hive = getHiveById(id);
+  const hive = await getHiveById(id);
   if (!hive) return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+
+  const [latestReading, health, yieldPrediction] = await Promise.all([
+    getLatestSensorReading(id),
+    getHiveHealth(id),
+    getHiveYieldPrediction(id),
+  ]);
 
   return NextResponse.json({
     hive,
-    latestReading: getLatestSensorReading(id) ?? null,
-    health: getHiveHealth(id),
-    yieldPrediction: getHiveYieldPrediction(id),
+    latestReading: latestReading ?? null,
+    health,
+    yieldPrediction,
   });
 }

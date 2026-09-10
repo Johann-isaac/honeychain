@@ -8,14 +8,19 @@ import { YieldPredictionCard } from "@/components/hive/yield-prediction-card";
 import { formatDate } from "@/lib/utils";
 import { getHiveHealth, getHiveById, getHiveYieldPrediction, getSensorReadings } from "@/lib/db";
 
+// Reads live mutable state (lib/db.ts), so this must be rendered per request rather than frozen at build time.
+export const dynamic = "force-dynamic";
+
 export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/hives/[hiveId]">) {
   const { hiveId } = await params;
-  const hive = getHiveById(hiveId);
+  const hive = await getHiveById(hiveId);
   if (!hive) notFound();
 
-  const readings = getSensorReadings(hiveId, 24);
-  const health = getHiveHealth(hiveId)!;
-  const prediction = getHiveYieldPrediction(hiveId)!;
+  const [readings, health, prediction] = await Promise.all([
+    getSensorReadings(hiveId, 24),
+    getHiveHealth(hiveId),
+    getHiveYieldPrediction(hiveId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -48,17 +53,19 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
           </div>
           <div>
             <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><CalendarCheck className="size-3.5" /> Last inspection</p>
-            <p className="mt-1 text-sm font-semibold">{formatDate(hive.lastInspection)}</p>
+            <p className="mt-1 text-sm font-semibold">{hive.lastInspection ? formatDate(hive.lastInspection) : "—"}</p>
           </div>
         </CardContent>
       </Card>
 
       <SensorMonitoring hiveId={hiveId} initialReadings={readings} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <HealthScoreCard health={health} />
-        <YieldPredictionCard prediction={prediction} />
-      </div>
+      {health && prediction && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <HealthScoreCard health={health} />
+          <YieldPredictionCard prediction={prediction} />
+        </div>
+      )}
     </div>
   );
 }

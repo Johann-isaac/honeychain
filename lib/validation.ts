@@ -35,6 +35,14 @@ export function requireNumber(value: unknown, field: string): number {
   return num;
 }
 
+export function requireNumberInRange(value: unknown, field: string, min: number, max: number): number {
+  const num = requireNumber(value, field);
+  if (num < min || num > max) {
+    throw new ValidationError(`${field} must be between ${min} and ${max}.`);
+  }
+  return num;
+}
+
 export function sanitizeText(value: string): string {
   return value.replace(/[<>]/g, "").trim();
 }

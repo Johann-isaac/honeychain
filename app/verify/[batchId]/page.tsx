@@ -10,7 +10,7 @@ import { getPublicVerification } from "@/lib/db";
 
 export default async function VerifyPage({ params }: PageProps<"/verify/[batchId]">) {
   const { batchId } = await params;
-  const result = getPublicVerification(batchId);
+  const result = await getPublicVerification(batchId);
 
   return (
     <div className="min-h-screen bg-honeycomb">
