@@ -131,22 +131,26 @@ async function getOrCreateDefaultBeekeeper(): Promise<Beekeeper> {
   const db = getSupabase();
   const code = process.env.DEFAULT_BEEKEEPER_CODE ?? "BK-0001";
 
-  const { data: existing } = await db.from("beekeepers").select("*").eq("beekeeper_code", code).maybeSingle();
-  if (existing) return mapBeekeeper(existing);
-
-  const { data: created, error } = await db
-    .from("beekeepers")
-    .insert({
+  // Atomic insert-if-missing (ON CONFLICT DO NOTHING) — this function runs
+  // on every page load, so it must be race-safe under concurrent requests
+  // AND must never overwrite a beekeeper's profile edits on a later call.
+  // A plain "select, then insert if missing" is not atomic: two concurrent
+  // requests can both see "missing" and both try to insert, and the loser
+  // gets a duplicate-key error instead of the existing row.
+  const { error: upsertError } = await db.from("beekeepers").upsert(
+    {
       beekeeper_code: code,
       name: process.env.DEFAULT_BEEKEEPER_NAME ?? "Beekeeper",
       email: process.env.DEFAULT_BEEKEEPER_EMAIL ?? "beekeeper@honeychain.demo",
       region: process.env.DEFAULT_BEEKEEPER_REGION ?? "Unknown Region",
       registration_status: "VERIFIED",
-    })
-    .select()
-    .single();
+    },
+    { onConflict: "beekeeper_code", ignoreDuplicates: true }
+  );
+  if (upsertError) throw new Error(`Unable to create default beekeeper: ${upsertError.message}`);
 
-  return mapBeekeeper(assertNoError(created, error, "Unable to create default beekeeper"));
+  const { data, error } = await db.from("beekeepers").select("*").eq("beekeeper_code", code).single();
+  return mapBeekeeper(assertNoError(data, error, "Unable to load default beekeeper"));
 }
 
 export async function getDefaultBeekeeperId(): Promise<string> {
