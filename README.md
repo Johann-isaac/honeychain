@@ -62,23 +62,28 @@ One hive node per hive (sensors + LoRa transmitter, no WiFi needed), relaying th
 Hive node (sensors + LoRa TX)  --433 MHz-->  Gateway (LoRa RX + WiFi)  --HTTPS-->  /api/hive-data
 ```
 
-1. **Per hive**, flash [`firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino`](firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino) onto that hive's ESP32, setting `HIVE_ID` at the top (each hive needs its own). Wire its LoRa module per the pinout comment at the top of the file.
-2. **Once**, flash [`firmware/esp32_lora_gateway/esp32_lora_gateway.ino`](firmware/esp32_lora_gateway/esp32_lora_gateway.ino) onto a separate ESP32 that has WiFi/internet access, filling in WiFi credentials, `SERVER_URL`, and `DEVICE_API_KEY`.
-3. Install the **LoRa** library by Sandeep Mistry on both boards (plus DHT/HX711 on the hive node only). `LORA_FREQUENCY` and the LoRa pin wiring must match exactly between every hive node and the gateway.
-4. Flash both, open Serial Monitor on each. The hive node transmits over LoRa on its own schedule; the gateway prints every packet it receives (with RSSI/SNR) and relays it to the website — you'll see identical `HTTP Response: 201` output to Option A, just arriving via the gateway instead of directly.
+The hive node sends its own field names (`hive_id`, `sound_level`, `hive_weight`) to keep its firmware simple — the **gateway translates these to what `/api/hive-data` expects** (`hiveId`, `soundLevel`, `prototypeWeight`) before forwarding, so neither the hive node's code nor the website's API had to change to match the other.
+
+1. **Per hive**, flash [`firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino`](firmware/esp32_hive_node_lora/esp32_hive_node_lora.ino) onto that hive's ESP32.
+   - ⚠️ **`HIVE_ID` must exactly match the Hive ID the website generated** when you clicked Register Hive (e.g. `HIVE-001`, with the dash) — the placeholder in the file is `HIVE001` without a dash and needs to be changed per hive, or the gateway will get a 404 "Unknown hiveId" back from the server.
+   - Calibrate the load cell: send `t` over Serial to tare, place a known weight, watch the raw output, then compute and hardcode `calibration_factor = raw_reading / known_weight_kg` at the top of the file.
+2. **Once**, flash [`firmware/esp32_lora_gateway/esp32_lora_gateway.ino`](firmware/esp32_lora_gateway/esp32_lora_gateway.ino) onto a separate ESP32 that has WiFi/internet access, filling in WiFi credentials, `SERVER_URL`, and `DEVICE_API_KEY`. This one needs no `HIVE_ID` — it just relays whatever it hears.
+3. Install libraries: **LoRa** by Sandeep Mistry (both boards), **DHT sensor library** by Adafruit + **HX711** by bogde (hive node only), **ArduinoJson** by Benoit Blanchon (gateway only, used to parse+translate the payload).
+4. **Radio settings must match exactly between every hive node and the gateway**, not just the frequency: spreading factor (7), signal bandwidth (125 kHz), coding rate (4/5), and sync word (both files use the LoRa library's default — neither calls `setSyncWord()`, so don't add one to only one side). The `.ino` files already have all of these set consistently; if you change one, change it everywhere.
+5. Flash both, open Serial Monitor on each. The hive node transmits every `SEND_INTERVAL` (30s by default); the gateway prints every packet it receives (with RSSI/SNR), the translated JSON it forwards, and the resulting `HTTP Response` code from the website — same success path as Option A, just arriving via the gateway.
 
 ⚠️ Use the frequency your actual LoRa modules are built for (433 MHz is the common hobbyist band in India) — transmitting on the wrong frequency for your hardware simply won't work.
 
 ## Sensors → data model
 
-The sensor model in the app matches the physical prototype exactly — nothing invented:
+The sensor model in the app matches the physical prototype exactly — nothing invented. Pins differ slightly between the two firmware options since they're independent files (see each `.ino`'s header comment for its exact wiring):
 
-| Sensor | Pin | Field |
-|---|---|---|
-| DHT22 | GPIO 5 | `temperature`, `humidity` |
-| Load cell + HX711 | DT=GPIO 27, SCK=GPIO 26 | `weight` (sent as `prototypeWeight`) |
-| Analog microphone | GPIO 34 | `soundLevel` |
-| Digital vibration sensor | GPIO 25 | `vibration` (boolean) |
+| Sensor | Field sent to `/api/hive-data` |
+|---|---|
+| DHT22 | `temperature`, `humidity` |
+| Load cell + HX711 | `prototypeWeight` |
+| Analog microphone | `soundLevel` |
+| Digital vibration sensor | `vibration` (boolean) |
 
 The AI Hive Health Score, yield prediction, and alerts on the dashboard are all computed live from these four fields (`lib/aiHealthService.ts`) — there's no separate "environment" data (weather, air quality, etc.) since no such sensor exists on the prototype.
 
