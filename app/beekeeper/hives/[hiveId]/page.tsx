@@ -72,14 +72,18 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
 
       <SensorMonitoring hiveId={hiveId} initialReadings={readings} />
 
-      <CameraPreviewCard hiveId={hiveId} initialSnapshotUrl={hive.latestSnapshotUrl} initialCapturedAt={hive.latestSnapshotAt} />
+      {/* Camera shares a row with the health score so a single 800x600 frame
+          can't take over the page on its own. */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CameraPreviewCard
+          hiveId={hiveId}
+          initialSnapshotUrl={hive.latestSnapshotUrl}
+          initialCapturedAt={hive.latestSnapshotAt}
+        />
+        {health && <HealthScoreCard health={health} />}
+      </div>
 
-      {health && prediction && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <HealthScoreCard health={health} />
-          <YieldPredictionCard prediction={prediction} />
-        </div>
-      )}
+      {prediction && <YieldPredictionCard prediction={prediction} />}
 
       <AiInsightCard hiveId={hiveId} initialInsight={hive.aiInsight} initialGeneratedAt={hive.aiInsightGeneratedAt} />
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Camera, RefreshCw } from "lucide-react";
+import { Camera, Maximize2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/utils";
@@ -70,21 +70,36 @@ export function CameraPreviewCard({
       </CardHeader>
       <CardContent>
         {!snapshotUrl || imageError ? (
-          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          <p className="max-w-sm rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             No snapshot yet — waiting for the hive camera to send its first image.
           </p>
         ) : (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL, refreshed on a timer */}
-            <img
-              src={displayUrl}
-              alt="Latest snapshot from the hive camera"
-              className="w-full rounded-xl border border-border object-cover"
-              onError={() => setImageError(true)}
-            />
-            <p className="mt-3 text-right text-[11px] text-muted-foreground">
-              {capturedAt ? `Captured ${formatDateTime(capturedAt)}` : ""}
-            </p>
+            {/* Fixed 4:3 box rather than letting the image set its own height.
+                The board sends 800x600, which at full card width swamped the
+                rest of the page. */}
+            <div className="relative aspect-[4/3] w-full max-w-sm overflow-hidden rounded-xl border border-border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL, refreshed on a timer */}
+              <img
+                src={displayUrl}
+                alt="Latest snapshot from the hive camera"
+                className="size-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            </div>
+            <div className="mt-3 flex max-w-sm items-center justify-between gap-3">
+              <p className="text-[11px] text-muted-foreground">
+                {capturedAt ? `Captured ${formatDateTime(capturedAt)}` : ""}
+              </p>
+              <a
+                href={displayUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Full size <Maximize2 className="size-3" />
+              </a>
+            </div>
           </>
         )}
       </CardContent>

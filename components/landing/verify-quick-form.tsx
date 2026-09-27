@@ -4,8 +4,17 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function VerifyQuickForm({ placeholder = "HC-2026-359938" }: { placeholder?: string }) {
+export function VerifyQuickForm({
+  placeholder = "HC-2026-359938",
+  // The default honey-filled button disappears when this form sits on the
+  // honey CTA panel, so that caller asks for the inverted treatment.
+  onAccent = false,
+}: {
+  placeholder?: string;
+  onAccent?: boolean;
+}) {
   const [code, setCode] = React.useState("");
   const router = useRouter();
 
@@ -33,7 +42,11 @@ export function VerifyQuickForm({ placeholder = "HC-2026-359938" }: { placeholde
           className="input h-11 pl-10"
         />
       </div>
-      <Button type="submit" size="lg" className="shrink-0">
+      <Button
+        type="submit"
+        size="lg"
+        className={cn("shrink-0", onAccent && "bg-charcoal text-cream shadow-sm hover:bg-charcoal/85")}
+      >
         Verify <ArrowRight className="size-4" />
       </Button>
     </form>
