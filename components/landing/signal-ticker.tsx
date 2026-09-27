@@ -1,19 +1,12 @@
-// A full-bleed marquee of what the platform actually measures, mixed with
-// real counts from getPlatformStats(). Deliberately not per-hive telemetry:
-// exact hive conditions are the producer's data, and the product only ever
-// publishes region-level information about a hive.
+// A quiet band of what the platform measures, mixed with real counts from
+// getPlatformStats(). Deliberately not per-hive telemetry: exact hive
+// conditions are the producer's data, and the product only ever publishes
+// region-level information about a hive.
 //
-// The track is rendered twice and translated 50% (see .marquee-track in
-// globals.css) so the loop has no visible seam.
+// Kept low-contrast and slow on purpose — it should register as a detail
+// you notice, not as a banner competing with the hero above it.
 
-const signals = [
-  "Temperature",
-  "Humidity",
-  "Hive weight",
-  "Colony sound",
-  "Vibration",
-  "Entrance camera",
-];
+const signals = ["Temperature", "Humidity", "Hive weight", "Colony sound", "Vibration", "Entrance camera"];
 
 export function SignalTicker({
   hives,
@@ -30,23 +23,24 @@ export function SignalTicker({
     `${batches} ${batches === 1 ? "batch" : "batches"} registered`,
     ...signals.slice(3),
     `${beekeepers} ${beekeepers === 1 ? "producer" : "producers"}`,
-    "No account needed to verify",
   ];
 
   const track = (
     <ul className="flex shrink-0 items-center" aria-hidden>
       {items.map((item, i) => (
         <li key={i} className="flex items-center whitespace-nowrap">
-          <span className="px-6 text-xs font-semibold uppercase tracking-[0.2em] text-cream/70">{item}</span>
-          <span className="size-1.5 rotate-45 bg-honey/70" />
+          <span className="px-7 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+            {item}
+          </span>
+          <span className="size-1 rounded-full bg-honey/50" />
         </li>
       ))}
     </ul>
   );
 
   return (
-    <div className="relative overflow-hidden border-y border-honey/20 bg-charcoal py-3.5">
-      {/* Screen readers get the content once, as plain text, instead of the
+    <div className="relative overflow-hidden border-y border-border bg-card py-4">
+      {/* Screen readers get the content once as plain prose, rather than the
           duplicated visual track. */}
       <p className="sr-only">HoneyChain monitors {signals.join(", ").toLowerCase()}.</p>
       <div className="marquee-mask flex">

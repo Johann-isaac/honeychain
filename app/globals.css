@@ -246,11 +246,11 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
   }
   .dark .grain::before {
-    opacity: 0.22;
+    opacity: 0.35;
   }
 
   /* A real hexagon, flat-top, for clipping content. */
@@ -265,27 +265,8 @@
   /* Structural comb: a tiled hexagon lattice in line work, not dots.
      Heavier than .bg-honeycomb and meant to be masked/faded. */
   .comb-lattice {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='96' viewBox='0 0 56 96'%3E%3Cg fill='none' stroke='%23b8791a' stroke-width='1.1'%3E%3Cpath d='M28 0 L52 14 L52 42 L28 56 L4 42 L4 14 Z'/%3E%3Cpath d='M28 48 L52 62 L52 90 L28 104 L4 90 L4 62 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='96' viewBox='0 0 56 96'%3E%3Cg fill='none' stroke='%23b8791a' stroke-width='0.6' stroke-opacity='0.55'%3E%3Cpath d='M28 0 L52 14 L52 42 L28 56 L4 42 L4 14 Z'/%3E%3Cpath d='M28 48 L52 62 L52 90 L28 104 L4 90 L4 62 Z'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 56px 96px;
-  }
-
-  /* Hand-drawn feel for emphasis: a swash under a word instead of a
-     border-bottom, which always looks mechanical. */
-  .swash {
-    position: relative;
-    display: inline-block;
-  }
-  .swash::after {
-    content: "";
-    position: absolute;
-    left: -2%;
-    right: -2%;
-    bottom: -0.12em;
-    height: 0.34em;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 16' preserveAspectRatio='none'%3E%3Cpath d='M2 11 C40 4 78 13 118 7 C148 2.5 176 9 198 5' fill='none' stroke='%23d99a2b' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-    z-index: -1;
   }
 
   /* Live telemetry ticker. Duplicate the content in markup and translate
@@ -301,13 +282,25 @@
     animation-play-state: paused;
   }
 
-  /* Oversized section numeral used as a watermark behind headings. */
+  /* Step index. Small, precise and monospaced-feeling rather than an
+     oversized outlined figure, which read as decoration competing with
+     the heading next to it. */
   .numeral {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-weight: 700;
-    line-height: 0.8;
-    color: transparent;
-    -webkit-text-stroke: 1.5px color-mix(in oklab, var(--color-honey) 42%, transparent);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--color-honey-dark);
+  }
+  .dark .numeral {
+    color: var(--color-honey);
+  }
+
+  /* Hairline rule that fades out — used to separate editorial sections
+     without drawing a hard line across the page. */
+  .rule-fade {
+    height: 1px;
+    background: linear-gradient(to right, var(--color-border), transparent);
   }
 
   .scrollbar-thin::-webkit-scrollbar {

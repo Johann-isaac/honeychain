@@ -36,22 +36,22 @@ const steps = [
   {
     icon: Radio,
     title: "The hive reports itself",
-    desc: "An ESP32 node on each hive sends temperature, humidity, weight and colony sound on a timer. A second board posts entrance photos. Nothing is typed in by hand.",
+    desc: "An ESP32 node on each hive sends temperature, humidity, weight and colony sound on a timer. A second board posts entrance photographs. Nothing is entered by hand.",
   },
   {
     icon: Sprout,
     title: "The harvest is logged",
-    desc: "Quantity, floral source, extraction method and storage go on the record at harvest time — alongside the hive conditions the sensors captured that day.",
+    desc: "Quantity, floral source, extraction method and storage join the record at harvest, alongside the hive conditions the sensors captured that day.",
   },
   {
     icon: Link2,
     title: "The batch is sealed",
-    desc: "Creating a batch hashes its contents and writes them to the ledger. From that moment, changing the record breaks the hash and the edit becomes visible.",
+    desc: "Creating a batch hashes its contents and writes them to the ledger. From that point, altering the record breaks the hash and the edit becomes visible.",
   },
   {
     icon: ScanLine,
     title: "Anyone can check it",
-    desc: "The QR code on the jar opens the whole record — producer, hive, conditions, ledger entry. No app, no account, no asking the seller.",
+    desc: "The code on the jar opens the full record — producer, hive, conditions, ledger entry. No application, no account, no need to ask the seller.",
   },
 ];
 
@@ -69,7 +69,7 @@ const platform = [
   {
     icon: QrCode,
     title: "Batch certificates",
-    desc: "Creating a batch generates its identifier, ledger record and printable QR code in one step, ready for the label.",
+    desc: "Creating a batch generates its identifier, ledger record and printable code in a single step, ready for the label.",
   },
 ];
 
@@ -82,12 +82,12 @@ const whyBlockchain = [
   {
     icon: Fingerprint,
     title: "Batch-level",
-    desc: "Every jar links to one specific hive, one harvest date, one registered producer — not to a brand in general.",
+    desc: "Every jar links to one specific hive, one harvest date and one registered producer — not to a brand in general.",
   },
   {
     icon: Eye,
-    title: "Published, not summarised",
-    desc: "Hive conditions, floral source, extraction and storage are all shown. Not compressed into a logo.",
+    title: "Published in full",
+    desc: "Hive conditions, floral source, extraction and storage are all shown, rather than compressed into a label.",
   },
   {
     icon: Users,
@@ -99,42 +99,41 @@ const whyBlockchain = [
 export default async function LandingPage() {
   const stats = await getPlatformStats();
 
+  const figures = [
+    { label: "Hives monitored", value: stats.activeHives },
+    { label: "Batches registered", value: stats.totalBatches },
+    { label: "Batches verified", value: stats.verifiedBatches },
+    { label: "Producers", value: stats.beekeepersCount },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader links={navLinks} />
 
       <main id="main" className="flex-1">
         {/* ---------------------------------------------------------------
-            Hero — asymmetric on purpose. Type occupies the left seven
-            columns and runs large; the right is a comb of hexagons rather
-            than a single centred illustration.
+            Hero. Calm and asymmetric: the claim sits left at a readable
+            size with generous leading, the comb sits right as a single
+            quiet object. Honey appears once, as a rule and an accent.
         --------------------------------------------------------------- */}
         <section className="grain relative overflow-hidden">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-32 -top-48 size-[38rem] rounded-full bg-honey/15 blur-3xl"
-          />
-
-          <div className="relative z-[1] mx-auto grid max-w-7xl items-center gap-14 px-5 pb-16 pt-10 sm:px-8 lg:grid-cols-12 lg:pb-24 lg:pt-16">
+          <div className="relative z-[1] mx-auto grid max-w-6xl items-center gap-16 px-6 pb-20 pt-16 sm:px-8 lg:grid-cols-12 lg:pb-28 lg:pt-24">
             <div className="lg:col-span-7">
-              <span className="inline-flex -rotate-2 items-center gap-1.5 rounded-md border-2 border-charcoal/85 bg-honey px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-charcoal shadow-[3px_3px_0_0_var(--color-charcoal)] dark:border-cream/80 dark:shadow-[3px_3px_0_0_var(--color-cream)]">
-                <Link2 className="size-3.5" /> Hive to jar, on the record
-              </span>
-
-              <h1 className="mt-7 font-display text-[2.7rem] font-semibold leading-[0.96] tracking-[-0.03em] sm:text-6xl lg:text-[4.4rem]">
-                Honey you can
-                <br />
-                <span className="swash">actually</span> verify.
-                <br />
-                <span className="text-honey-dark dark:text-honey">Not just trust.</span>
-              </h1>
-
-              <p className="mt-7 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Every batch carries the hive it came from, the conditions it was harvested in, and a ledger
-                entry anyone can check in seconds.
+              <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                <span className="h-px w-8 bg-honey" />
+                Honey traceability
               </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <h1 className="mt-8 max-w-xl font-display text-[2.5rem] font-medium leading-[1.08] tracking-[-0.022em] text-balance sm:text-5xl lg:text-[3.5rem]">
+                Provenance you can verify, not simply trust.
+              </h1>
+
+              <p className="mt-7 max-w-lg text-lg leading-[1.65] text-muted-foreground">
+                HoneyChain records the hive a batch came from, the conditions it was harvested in, and a ledger
+                entry any buyer can check in seconds.
+              </p>
+
+              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg">
                   <Link href="/beekeeper">
                     Open the portal <ArrowRight className="size-4" />
@@ -146,34 +145,29 @@ export default async function LandingPage() {
               </div>
             </div>
 
-            {/* Hexagon comb. The jar sits in the large cell; the three small
-                cells carry the live counts, so the stats are part of the
-                composition instead of a separate band of boxes. */}
             <div className="lg:col-span-5">
-              <div className="relative mx-auto grid max-w-sm grid-cols-3 gap-3">
-                <div className="comb-lattice hex-v col-span-3 flex aspect-[6/5] items-center justify-center bg-accent/60 opacity-100">
-                  <HoneyJarIllustration className="h-auto w-36 sm:w-44" />
-                </div>
-
-                {[
-                  { label: "Hives", value: stats.activeHives },
-                  { label: "Batches", value: stats.totalBatches },
-                  { label: "Producers", value: stats.beekeepersCount },
-                ].map((tile) => (
-                  <div
-                    key={tile.label}
-                    className="hex-v flex aspect-[7/8] flex-col items-center justify-center bg-card shadow-sm"
-                  >
-                    <span className="font-display text-2xl font-semibold text-honey-dark dark:text-honey">
-                      <AnimatedCounter value={tile.value} />
-                    </span>
-                    <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      {tile.label}
-                    </span>
-                  </div>
-                ))}
+              <div className="comb-lattice hex-v mx-auto flex aspect-[6/5] max-w-xs items-center justify-center bg-accent/35">
+                <HoneyJarIllustration className="h-auto w-36 sm:w-40" />
               </div>
             </div>
+          </div>
+
+          {/* Figures as a typographic row under the hero, separated by
+              hairlines rather than sat inside boxes. */}
+          <div className="relative z-[1] border-t border-border">
+            <dl className="mx-auto grid max-w-6xl grid-cols-2 px-6 sm:px-8 lg:grid-cols-4">
+              {figures.map((figure, i) => (
+                <div
+                  key={figure.label}
+                  className={`py-8 lg:py-9 ${i > 0 ? "lg:border-l lg:border-border lg:pl-8" : ""}`}
+                >
+                  <dd className="font-display text-3xl font-medium tabular-nums sm:text-[2.25rem]">
+                    <AnimatedCounter value={figure.value} />
+                  </dd>
+                  <dt className="mt-2 text-xs tracking-wide text-muted-foreground">{figure.label}</dt>
+                </div>
+              ))}
+            </dl>
           </div>
         </section>
 
@@ -183,34 +177,24 @@ export default async function LandingPage() {
           beekeepers={stats.beekeepersCount}
         />
 
-        {/* ---------------------------------------------------------------
-            Process — offset rows with oversized numerals, rather than four
-            identical columns. Each row steps further right on desktop.
-        --------------------------------------------------------------- */}
-        <section id="how-it-works" className="grain relative overflow-hidden py-20 sm:py-28">
-          <div className="relative z-[1] mx-auto max-w-7xl px-5 sm:px-8">
-            <div className="max-w-2xl">
-              <Eyebrow>The chain</Eyebrow>
-              <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-[2.6rem] sm:leading-[1.05]">
-                Four stages. Each one writes to the same record.
-              </h2>
-            </div>
+        {/* Process — a numbered editorial list separated by hairlines. */}
+        <section id="how-it-works" className="py-24 sm:py-32">
+          <div className="mx-auto max-w-6xl px-6 sm:px-8">
+            <SectionHeading eyebrow="How it works" title="Four stages. One record." />
 
-            <ol className="mt-16 space-y-12 lg:space-y-6">
+            <ol className="mt-16">
               {steps.map((step, i) => (
                 <li
                   key={step.title}
-                  className="grid gap-5 border-t border-border pt-8 lg:grid-cols-12 lg:items-start"
-                  style={{ marginLeft: `calc(${i} * 2.2rem)` }}
+                  className="grid gap-x-10 gap-y-4 border-t border-border py-10 last:border-b lg:grid-cols-12"
                 >
-                  <div className="flex items-center gap-5 lg:col-span-4">
-                    <span className="numeral shrink-0 text-6xl sm:text-7xl">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="hex flex size-12 shrink-0 items-center justify-center bg-accent text-honey-dark dark:text-honey">
-                      <step.icon className="size-5" />
-                    </span>
+                  <div className="flex items-baseline gap-4 lg:col-span-4">
+                    <span className="numeral">{String(i + 1).padStart(2, "0")}</span>
+                    <h3 className="font-display text-xl font-medium tracking-tight">{step.title}</h3>
                   </div>
-                  <h3 className="font-display text-xl font-semibold tracking-tight lg:col-span-3">{step.title}</h3>
-                  <p className="max-w-xl leading-relaxed text-muted-foreground lg:col-span-5">{step.desc}</p>
+                  <p className="max-w-xl leading-[1.7] text-muted-foreground lg:col-span-7 lg:col-start-6">
+                    {step.desc}
+                  </p>
                 </li>
               ))}
             </ol>
@@ -218,23 +202,23 @@ export default async function LandingPage() {
         </section>
 
         {/* Platform */}
-        <section id="platform" className="border-y border-border bg-card py-20 sm:py-28">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8">
-            <div className="max-w-2xl">
-              <Eyebrow>For producers</Eyebrow>
-              <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-[2.6rem] sm:leading-[1.05]">
-                The hive data behind every certificate.
-              </h2>
-            </div>
+        <section id="platform" className="border-y border-border bg-card py-24 sm:py-32">
+          <div className="mx-auto max-w-6xl px-6 sm:px-8">
+            <SectionHeading
+              eyebrow="For producers"
+              title="The hive data behind every certificate."
+              lead="The portal is where the record is built — monitoring, analysis and batch registration in one place."
+            />
 
-            <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-border bg-border lg:grid-cols-3">
+            <div className="mt-16 grid gap-12 lg:grid-cols-3 lg:gap-10">
               {platform.map((item) => (
-                <article key={item.title} className="group bg-background p-8 transition-colors hover:bg-accent/40">
-                  <span className="hex flex size-12 items-center justify-center bg-accent text-honey-dark dark:text-honey">
-                    <item.icon className="size-5" />
+                <article key={item.title}>
+                  <span className="hex flex size-11 items-center justify-center bg-accent text-honey-dark dark:text-honey">
+                    <item.icon className="size-[1.15rem]" />
                   </span>
-                  <h3 className="mt-6 font-display text-xl font-semibold tracking-tight">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                  <h3 className="mt-6 font-display text-lg font-medium tracking-tight">{item.title}</h3>
+                  <div className="rule-fade my-4" />
+                  <p className="text-sm leading-[1.7] text-muted-foreground">{item.desc}</p>
                 </article>
               ))}
             </div>
@@ -242,58 +226,61 @@ export default async function LandingPage() {
         </section>
 
         {/* Why a ledger */}
-        <section id="why-blockchain" className="grain relative overflow-hidden py-20 sm:py-28">
-          <div className="relative z-[1] mx-auto max-w-7xl px-5 sm:px-8">
-            <div className="grid gap-12 lg:grid-cols-12">
-              <div className="lg:col-span-5">
-                <Eyebrow>Why a ledger</Eyebrow>
-                <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-[2.6rem] sm:leading-[1.05]">
-                  Trust that doesn&apos;t rest on a promise.
-                </h2>
-                <p className="mt-5 leading-relaxed text-muted-foreground">
-                  A shared, verifiable record means no single party can quietly rewrite the story of a jar of
-                  honey — including us.
-                </p>
-              </div>
-
-              <div className="grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:col-span-7">
-                {whyBlockchain.map((item) => (
-                  <div key={item.title} className="border-l-2 border-honey/40 pl-5">
-                    <item.icon className="size-5 text-nature" />
-                    <h3 className="mt-3 font-semibold">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
+        <section id="why-blockchain" className="py-24 sm:py-32">
+          <div className="mx-auto grid max-w-6xl gap-16 px-6 sm:px-8 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <SectionHeading
+                eyebrow="Why a ledger"
+                title="Trust that does not rest on a promise."
+                lead="A shared, verifiable record means no single party can quietly rewrite the story of a jar of honey — ourselves included."
+              />
             </div>
+
+            <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:col-span-6 lg:col-start-7">
+              {whyBlockchain.map((item) => (
+                <div key={item.title}>
+                  <item.icon className="size-[1.15rem] text-nature" />
+                  <dt className="mt-4 font-medium">{item.title}</dt>
+                  <dd className="mt-2 text-sm leading-[1.7] text-muted-foreground">{item.desc}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </section>
 
-        {/* Verification CTA */}
+        {/* Verification CTA — a deep panel, honey used only for accents. */}
         <section className="pb-24 sm:pb-32">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8">
-            <div className="grain relative overflow-hidden rounded-3xl border-2 border-charcoal/85 bg-honey p-8 shadow-[8px_8px_0_0_var(--color-charcoal)] sm:p-14 dark:border-cream/70 dark:shadow-[8px_8px_0_0_rgba(244,240,232,0.5)]">
-              <div className="relative z-[1] grid items-center gap-10 lg:grid-cols-12">
+          <div className="mx-auto max-w-6xl px-6 sm:px-8">
+            <div className="grain relative overflow-hidden rounded-2xl bg-charcoal px-8 py-14 sm:px-14 sm:py-16">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-honey/10 blur-3xl"
+              />
+              <div className="relative z-[1] grid items-center gap-12 lg:grid-cols-12">
                 <div className="lg:col-span-7">
-                  <h2 className="font-display text-3xl font-semibold tracking-tight text-charcoal sm:text-[2.7rem] sm:leading-[1.03]">
-                    Got a jar in front of you?
-                  </h2>
-                  <p className="mt-4 max-w-md leading-relaxed text-charcoal/75">
-                    Type the batch identifier from the label. You&apos;ll see exactly what any buyer sees — no
-                    account, no app.
+                  <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-cream/50">
+                    <span className="h-px w-8 bg-honey" />
+                    Verify
                   </p>
-                  <div className="mt-7">
+                  <h2 className="mt-6 max-w-md font-display text-3xl font-medium leading-[1.12] tracking-[-0.02em] text-cream sm:text-[2.5rem]">
+                    Have a jar in front of you?
+                  </h2>
+                  <p className="mt-5 max-w-md leading-[1.65] text-cream/60">
+                    Enter the batch identifier from the label to see exactly what any buyer sees. No account, no
+                    application.
+                  </p>
+                  <div className="mt-8">
                     <VerifyQuickForm onAccent />
                   </div>
                   <Link
                     href="/consumer/scan"
-                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-charcoal underline decoration-charcoal/40 decoration-2 underline-offset-4 hover:decoration-charcoal"
+                    className="mt-6 inline-flex items-center gap-1.5 text-sm text-cream/70 underline decoration-cream/25 underline-offset-4 transition-colors hover:text-cream hover:decoration-cream/60"
                   >
-                    Or scan the QR code <ArrowRight className="size-3.5" />
+                    Or scan the code instead <ArrowRight className="size-3.5" />
                   </Link>
                 </div>
                 <div className="lg:col-span-5">
-                  <HoneyJarIllustration className="mx-auto h-auto w-40 sm:w-52" />
+                  <HoneyJarIllustration className="mx-auto h-auto w-36 sm:w-44" />
                 </div>
               </div>
             </div>
@@ -306,11 +293,25 @@ export default async function LandingPage() {
   );
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function SectionHeading({
+  eyebrow,
+  title,
+  lead,
+}: {
+  eyebrow: string;
+  title: string;
+  lead?: string;
+}) {
   return (
-    <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-honey-dark dark:text-honey">
-      <span className="size-1.5 rotate-45 bg-honey" />
-      {children}
-    </p>
+    <div className="max-w-2xl">
+      <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+        <span className="h-px w-8 bg-honey" />
+        {eyebrow}
+      </p>
+      <h2 className="mt-6 font-display text-3xl font-medium leading-[1.12] tracking-[-0.02em] text-balance sm:text-[2.5rem]">
+        {title}
+      </h2>
+      {lead && <p className="mt-5 leading-[1.7] text-muted-foreground">{lead}</p>}
+    </div>
   );
 }

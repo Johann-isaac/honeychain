@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 
 export function VerifyQuickForm({
   placeholder = "HC-2026-359938",
-  // The default honey-filled button disappears when this form sits on the
-  // honey CTA panel, so that caller asks for the inverted treatment.
+  // Set when the form sits on the dark CTA panel. The default `.input` uses
+  // the card colour, which is near-invisible against charcoal in dark mode,
+  // so the field switches to a translucent treatment instead. The button
+  // keeps its honey fill, which already reads well on a dark ground.
   onAccent = false,
 }: {
   placeholder?: string;
@@ -28,7 +30,12 @@ export function VerifyQuickForm({
   return (
     <form onSubmit={submit} className="flex w-full max-w-md flex-col gap-2 sm:flex-row">
       <div className="relative flex-1">
-        <ScanLine className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <ScanLine
+          className={cn(
+            "pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2",
+            onAccent ? "text-cream/50" : "text-muted-foreground"
+          )}
+        />
         <label htmlFor="batch-code" className="sr-only">
           Batch identifier
         </label>
@@ -39,13 +46,17 @@ export function VerifyQuickForm({
           placeholder={`Enter batch ID (e.g. ${placeholder})`}
           autoCapitalize="characters"
           spellCheck={false}
-          className="input h-11 pl-10"
+          className={cn(
+            "input h-11 pl-10",
+            onAccent &&
+              "border-cream/20 bg-cream/10 text-cream placeholder:text-cream/45 hover:border-cream/35 focus:border-honey"
+          )}
         />
       </div>
       <Button
         type="submit"
         size="lg"
-        className={cn("shrink-0", onAccent && "bg-charcoal text-cream shadow-sm hover:bg-charcoal/85")}
+        className="shrink-0"
       >
         Verify <ArrowRight className="size-4" />
       </Button>
