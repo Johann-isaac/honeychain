@@ -6,11 +6,13 @@
   the website: Beekeeper Dashboard → My Hives → Register Hive — the
   generated Hive ID, e.g. "HIVE-001", goes in HIVE_ID below).
 
-  Sensors on this prototype (do not change pins):
-    - DHT22            temperature + humidity      -> GPIO 5
-    - HX711 + 1x load cell   weight                -> DT=GPIO 27, SCK=GPIO 26
+  Sensors on this prototype (matches the wiring used for the LoRa hive
+  node — pins were changed from the original placeholders to match it
+  exactly, so the same physical wiring works with either firmware):
+    - DHT22            temperature + humidity      -> GPIO 4
+    - HX711 + 1x load cell   weight                -> DT=GPIO 32, SCK=GPIO 33
     - Analog microphone      sound level            -> GPIO 34 (ADC1, input-only)
-    - Digital vibration sensor                      -> GPIO 25
+    - Digital vibration sensor                      -> GPIO 27
 
   Required Arduino libraries (Library Manager):
     - "DHT sensor library" by Adafruit (+ its "Adafruit Unified Sensor" dependency)
@@ -20,10 +22,11 @@
   Data flow (see project README for the full picture):
     ESP32 --(HTTPS POST, Bearer token)--> Next.js /api/hive-data --> Supabase
 
-  SECURITY: this firmware holds only a device API key (HIVE_DEVICE_API_KEY),
-  never a Supabase key. The Next.js server is the only thing that talks to
-  Supabase. If this device key ever leaks, rotate HIVE_DEVICE_API_KEY on the
-  server and reflash every device with the new value.
+  SECURITY: this firmware holds only this one hive's device secret
+  (DEVICE_SECRET), never a Supabase key. The Next.js server is the only
+  thing that talks to Supabase. If this device secret ever leaks, remove
+  the hive from the dashboard and register it again to get a fresh one —
+  it won't affect any other hive.
 
   Serial commands (type into Serial Monitor, 115200 baud, then Enter):
     t  -> tare the load cell (run this with an empty platform)
@@ -31,6 +34,12 @@
           calibration_factor = raw_reading / known_weight_kg)
     r  -> print current sensor readings without sending
     w  -> print WiFi status
+
+  AUTH: DEVICE_SECRET below is NOT a shared password — it's this specific
+  hive's own secret, shown exactly once on the website when you clicked
+  Register Hive. Every hive has a different one. If /api/hive-data starts
+  rejecting this device with 401, the secret was lost — remove the hive
+  from the dashboard and register it again to get a fresh one.
 */
 
 #include <WiFi.h>
@@ -51,15 +60,16 @@ const char* HIVE_ID = "HIVE-001";
 
 // Your deployed HoneyChain URL (or http://<lan-ip>:3000 while testing on
 // the same network as your dev machine — HTTP, not HTTPS, for localhost).
-const char* SERVER_URL = "https://YOUR-DOMAIN.com/api/hive-data";
+const char* SERVER_URL = "https://honeychain-nine.vercel.app/api/hive-data";
 
-// Must match HIVE_DEVICE_API_KEY in the server's .env.local exactly.
-const char* DEVICE_API_KEY = "YOUR_DEVICE_API_KEY";
+// This hive's device secret — shown once on the website right after you
+// clicked Register Hive. Not a shared key: every hive gets its own.
+const char* DEVICE_SECRET = "YOUR_DEVICE_SECRET";
 
 // How often to send a reading. 5 minutes for real deployment; drop to
 // something like 10000 (10s) while testing.
-const unsigned long SEND_INTERVAL = 300000; // 5 minutes
-// const unsigned long SEND_INTERVAL = 10000; // 10 seconds — testing
+const unsigned long SEND_INTERVAL = 10000; // 10 seconds — testing
+// const unsigned long SEND_INTERVAL = 300000; // 5 minutes — real deployment
 
 // Load cell calibration factor. Use the 'c' serial command to find this:
 // place a known weight on the platform, read the raw value, then
@@ -67,17 +77,17 @@ const unsigned long SEND_INTERVAL = 300000; // 5 minutes
 float calibration_factor = 420.0; // <-- REPLACE WITH YOUR OWN CALIBRATION FACTOR
 
 // ---------------------------------------------------------------------------
-// Pins — do not change
+// Pins — matches the LoRa hive node's wiring (see header comment above)
 // ---------------------------------------------------------------------------
 
-#define DHT_PIN 5
+#define DHT_PIN 4
 #define DHT_TYPE DHT22
 
-#define HX711_DT 27
-#define HX711_SCK 26
+#define HX711_DT 32
+#define HX711_SCK 33
 
 #define MIC_PIN 34       // ADC1 input-only pin — analog reads only
-#define VIBRATION_PIN 25
+#define VIBRATION_PIN 27
 
 // ---------------------------------------------------------------------------
 
@@ -250,7 +260,7 @@ void sendReading() {
   HTTPClient http;
   http.begin(SERVER_URL);
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("Authorization", String("Bearer ") + DEVICE_API_KEY);
+  http.addHeader("Authorization", String("Bearer ") + DEVICE_SECRET);
 
   int statusCode = http.POST((uint8_t*)payload, strlen(payload));
 

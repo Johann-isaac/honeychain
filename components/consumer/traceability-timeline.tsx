@@ -14,7 +14,7 @@ export function TraceabilityTimeline({ events }: { events: { icon: string; label
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Traceability Timeline</CardTitle>
+        <CardTitle>Traceability timeline</CardTitle>
       </CardHeader>
       <CardContent>
         <ol className="relative space-y-6 border-l border-border pl-6">

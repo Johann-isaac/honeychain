@@ -24,7 +24,12 @@ create table if not exists beekeepers (
   phone text,
   registration_status text not null default 'VERIFIED'
     check (registration_status in ('VERIFIED', 'PENDING', 'SUSPENDED')),
-  joined_date timestamptz not null default now()
+  joined_date timestamptz not null default now(),
+  -- Login credentials. Nullable at the DB level (Postgres allows many NULLs
+  -- under a unique constraint) so this migrates cleanly onto an existing
+  -- project; the app always sets both together at signup.
+  username text unique,
+  password_hash text
 );
 
 alter table beekeepers enable row level security;
@@ -48,7 +53,23 @@ create table if not exists hives (
     check (status in ('HEALTHY', 'ATTENTION', 'CRITICAL')),
   last_inspection timestamptz,
   next_inspection timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Per-device pairing secret, generated once when the hive is registered
+  -- and shown to the beekeeper exactly once. The ESP32 sends it as a
+  -- Bearer token to POST /api/hive-data; only its bcrypt hash is stored.
+  device_secret_hash text,
+  -- Cached result of the last on-demand AI analysis (lib/aiPredictionService.ts,
+  -- via OpenRouter) so the dashboard has something to show without
+  -- re-calling the API on every page load. Null until a beekeeper clicks
+  -- "Analyze with AI".
+  ai_insight jsonb,
+  ai_insight_generated_at timestamptz,
+  -- Latest camera snapshot — a storage path into the "hive-snapshots"
+  -- Supabase Storage bucket (public-read, write-only via service_role),
+  -- not a full URL, so the public URL can be regenerated if the bucket
+  -- or domain ever changes. Null until the camera board's first upload.
+  latest_snapshot_path text,
+  latest_snapshot_at timestamptz
 );
 
 alter table hives enable row level security;

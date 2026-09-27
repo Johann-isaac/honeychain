@@ -1,23 +1,42 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Hexagon, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CreateBatchForm } from "@/components/batch/create-batch-form";
-import { getDefaultBeekeeperId, getHivesByBeekeeper } from "@/lib/db";
+import { PageHeader, EmptyState } from "@/components/layout/page-header";
+import { getHivesByBeekeeper } from "@/lib/db";
+import { getCurrentBeekeeperId } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "Create Honey Batch" };
 
 // Reads live mutable state (lib/db.ts), so this must be rendered per request rather than frozen at build time.
 export const dynamic = "force-dynamic";
 
 export default async function NewBatchPage() {
-  const beekeeperId = await getDefaultBeekeeperId();
+  const beekeeperId = await getCurrentBeekeeperId();
   const hives = await getHivesByBeekeeper(beekeeperId);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl">Create Honey Batch</h1>
-        <p className="text-sm text-muted-foreground">Batch ID is generated automatically once you submit this form.</p>
-      </div>
+    <div>
+      <PageHeader
+        title="Create honey batch"
+        description="The batch identifier, ledger record and QR code are all generated once you submit this form."
+        backHref="/beekeeper/batches"
+        backLabel="Back to batches"
+      />
       {hives.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          You need to register a hive before creating a batch. Add one from the My Hives page.
-        </p>
+        <EmptyState
+          icon={Hexagon}
+          title="Register a hive first"
+          description="A batch has to be traceable to the hive it was harvested from, so you need at least one registered hive."
+          action={
+            <Button asChild>
+              <Link href="/beekeeper/hives/new">
+                <Plus className="size-4" /> Register a hive
+              </Link>
+            </Button>
+          }
+        />
       ) : (
         <CreateBatchForm hives={hives} />
       )}

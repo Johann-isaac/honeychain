@@ -32,6 +32,39 @@ export interface Hive {
   status: HiveStatus;
   lastInspection: string;
   nextInspection: string;
+  aiInsight?: HiveAiInsight;
+  aiInsightGeneratedAt?: string;
+  latestSnapshotUrl?: string;
+  latestSnapshotAt?: string;
+}
+
+// A genuine LLM-generated assessment (via lib/aiPredictionService.ts and
+// OpenRouter) — distinct from AiHealthResult below, which is a
+// deterministic rule-based score computed with no external API call. This
+// one costs a real request and is generated on demand (see POST
+// /api/hives/[id]/ai-insight), not on every page load.
+export type HiveHealthStatus = "HEALTHY" | "AT_RISK" | "CRITICAL";
+
+export interface HiveAiInsight {
+  healthStatus: HiveHealthStatus;
+  confidence: number; // 0-100
+  summary: string;
+  riskFactors: string[];
+  recommendations: string[];
+  // Present only when a camera snapshot existed at analysis time. This is
+  // a general-purpose vision model's visual read of the photo — NOT a
+  // trained disease-detection model — so it's kept clearly labeled and
+  // separate from the sensor-based fields above.
+  visualScreening?: HiveVisualScreening;
+}
+
+export type VisualDiseaseRisk = "NO_CONCERNS_VISIBLE" | "POSSIBLE_CONCERN" | "NEEDS_INSPECTION";
+
+export interface HiveVisualScreening {
+  diseaseRisk: VisualDiseaseRisk;
+  confidence: number; // 0-100
+  observations: string;
+  visibleSigns: string[];
 }
 
 // Mirrors exactly what the physical prototype reports: one DHT22 (temperature
@@ -81,11 +114,16 @@ export interface HoneyBatch {
   storageTemperature: number;
   storageLocation: string;
   status: BatchStatus;
-  // Environmental snapshot captured at harvest time
+  // Environmental snapshot captured at harvest time — null when the hive
+  // had no sensor reading yet at the moment of batch creation. Never
+  // filled with a plausible-looking placeholder number: a batch record
+  // is a permanent claim about real conditions, so "no data" must stay
+  // visibly "no data" rather than a fabricated 34°C/60%/40kg that could
+  // be mistaken for a genuine reading.
   envSnapshot: {
-    temperature: number;
-    humidity: number;
-    hiveWeight: number;
+    temperature: number | null;
+    humidity: number | null;
+    hiveWeight: number | null;
     aiHealthScore: number;
   };
   createdAt: string;

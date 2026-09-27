@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHiveByCode, insertSensorReading } from "@/lib/db";
+import { verifyHiveDeviceSecret, insertSensorReading } from "@/lib/db";
 import { ValidationError, requireNumberInRange, requireString } from "@/lib/validation";
 
 // POST /api/hive-data — the one endpoint an ESP32 ever calls.
@@ -7,7 +7,10 @@ import { ValidationError, requireNumberInRange, requireString } from "@/lib/vali
 // SECURITY: this route holds the Supabase service_role key indirectly
 // (via lib/db.ts → lib/supabase/server.ts) and is the only thing allowed
 // to. The ESP32 itself never sees that key — it only ever sends this
-// route a device Bearer token (HIVE_DEVICE_API_KEY), checked below.
+// route a Bearer token, which is that specific hive's device secret
+// (shown once when the hive was registered from the dashboard). Each
+// hive has its own secret, so one device's credential can never be used
+// to post data under a different hive's id.
 //
 // Expected payload (see firmware/esp32_hive_monitor/esp32_hive_monitor.ino):
 //   {
@@ -19,17 +22,6 @@ import { ValidationError, requireNumberInRange, requireString } from "@/lib/vali
 //     "vibration": false
 //   }
 export async function POST(request: NextRequest) {
-  const expectedKey = process.env.HIVE_DEVICE_API_KEY;
-  if (!expectedKey) {
-    return NextResponse.json({ success: false, message: "Server is not configured for device ingestion." }, { status: 500 });
-  }
-
-  const authHeader = request.headers.get("authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : "";
-  if (token !== expectedKey) {
-    return NextResponse.json({ success: false, message: "Unauthorized device." }, { status: 401 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -40,17 +32,27 @@ export async function POST(request: NextRequest) {
   try {
     const payload = body as Record<string, unknown>;
     const hiveCode = requireString(payload.hiveId, "hiveId");
+
+    const authHeader = request.headers.get("authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : "";
+    if (!token) {
+      return NextResponse.json({ success: false, message: "Unauthorized device." }, { status: 401 });
+    }
+
+    const hive = await verifyHiveDeviceSecret(hiveCode, token);
+    if (!hive) {
+      return NextResponse.json(
+        { success: false, message: `Unknown hiveId or wrong device secret for "${hiveCode}".` },
+        { status: 401 }
+      );
+    }
+
     const temperature = requireNumberInRange(payload.temperature, "temperature", -10, 60);
     const humidity = requireNumberInRange(payload.humidity, "humidity", 0, 100);
     const weight = requireNumberInRange(payload.prototypeWeight, "prototypeWeight", 0, 200);
     const soundLevel = requireNumberInRange(payload.soundLevel, "soundLevel", 0, 4095);
     if (typeof payload.vibration !== "boolean") {
       throw new ValidationError("vibration must be a boolean.");
-    }
-
-    const hive = await getHiveByCode(hiveCode);
-    if (!hive) {
-      return NextResponse.json({ success: false, message: `Unknown hiveId "${hiveCode}". Register this hive from the dashboard first.` }, { status: 404 });
     }
 
     await insertSensorReading({

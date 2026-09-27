@@ -37,12 +37,33 @@ export function YieldPredictionCard({ prediction }: { prediction: YieldPredictio
         <div className="mt-5">
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#8884" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e8dcc4", fontSize: 12 }} />
-              <Bar dataKey="actual" name="Past yield (kg)" fill="#8a5a2b" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="predicted" name="Predicted (kg)" fill="#d99a2b" radius={[6, 6, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                tickLine={false}
+                axisLine={false}
+                width={30}
+              />
+              <Tooltip
+                cursor={{ fill: "color-mix(in oklab, var(--color-muted-foreground) 10%, transparent)" }}
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid var(--color-border)",
+                  boxShadow: "var(--shadow-md)",
+                  fontSize: 12,
+                  background: "var(--color-card)",
+                  color: "var(--color-foreground)",
+                }}
+                labelStyle={{ color: "var(--color-muted-foreground)", marginBottom: 4 }}
+              />
+              <Bar dataKey="actual" name="Past yield (kg)" fill="var(--color-nature)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="predicted" name="Predicted (kg)" fill="var(--color-honey)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

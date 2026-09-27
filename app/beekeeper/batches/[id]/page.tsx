@@ -1,28 +1,46 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BatchStatusBadge } from "@/components/batch/batch-status-badge";
 import { QrPanel } from "@/components/qr/qr-panel";
 import { BlockchainProof } from "@/components/blockchain/blockchain-proof";
 import { formatDate } from "@/lib/utils";
 import { getBatchById, getBlockchainRecordsByBatch, getHiveById } from "@/lib/db";
+import { getCurrentBeekeeperId } from "@/lib/auth";
+
+export async function generateMetadata({ params }: PageProps<"/beekeeper/batches/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const batch = await getBatchById(id);
+  return { title: batch ? `Batch ${batch.batchCode}` : "Batch" };
+}
 
 export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/batches/[id]">) {
   const { id } = await params;
+  const beekeeperId = await getCurrentBeekeeperId();
   const batch = await getBatchById(id);
-  if (!batch) notFound();
+  if (!batch || batch.beekeeperId !== beekeeperId) notFound();
 
   const [hive, blockchainRecords] = await Promise.all([getHiveById(batch.hiveId), getBlockchainRecordsByBatch(batch.id)]);
   const blockchain = blockchainRecords[0] ?? null;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs text-muted-foreground">Batch</p>
-          <h1 className="font-display text-2xl">{batch.batchCode}</h1>
+      <div>
+        <Link
+          href="/beekeeper/batches"
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Back to batches
+        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Honey batch</p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{batch.batchCode}</h1>
+          </div>
+          <BatchStatusBadge status={batch.status} />
         </div>
-        <BatchStatusBadge status={batch.status} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -47,9 +65,9 @@ export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/
             <CardTitle className="text-sm">Environmental Snapshot at Harvest</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <Info label="Temperature" value={`${batch.envSnapshot.temperature}°C`} />
-            <Info label="Humidity" value={`${batch.envSnapshot.humidity}%`} />
-            <Info label="Hive Weight" value={`${batch.envSnapshot.hiveWeight} kg`} />
+            <Info label="Temperature" value={batch.envSnapshot.temperature !== null ? `${batch.envSnapshot.temperature}°C` : "No data recorded"} />
+            <Info label="Humidity" value={batch.envSnapshot.humidity !== null ? `${batch.envSnapshot.humidity}%` : "No data recorded"} />
+            <Info label="Hive Weight" value={batch.envSnapshot.hiveWeight !== null ? `${batch.envSnapshot.hiveWeight} kg` : "No data recorded"} />
             <Info label="AI Health Score" value={`${batch.envSnapshot.aiHealthScore} / 100`} />
           </CardContent>
         </Card>
@@ -60,9 +78,10 @@ export default async function BatchDetailPage({ params }: PageProps<"/beekeeper/
           <CardContent className="flex items-start gap-3 p-5">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
             <div>
-              <p className="text-sm font-semibold text-destructive">Blockchain registration failed</p>
+              <p className="text-sm font-semibold text-destructive">Ledger registration failed</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                We couldn&apos;t register this batch on the blockchain. This is a demo network issue — try creating the batch again.
+                This batch could not be written to the ledger, so it cannot be verified by consumers yet. Creating
+                the batch again will retry the registration.
               </p>
             </div>
           </CardContent>

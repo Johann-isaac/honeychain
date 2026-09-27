@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDefaultBeekeeperId, updateBeekeeper } from "@/lib/db";
+import { updateBeekeeper } from "@/lib/db";
+import { getCurrentBeekeeperId } from "@/lib/auth";
 import { ValidationError, requireString, sanitizeText } from "@/lib/validation";
 
 export async function PATCH(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function PATCH(request: NextRequest) {
     const region = sanitizeText(requireString(body.region, "Region", { maxLength: 120 }));
     const phone = typeof body.phone === "string" ? sanitizeText(body.phone).slice(0, 40) : undefined;
 
-    const beekeeperId = await getDefaultBeekeeperId();
+    const beekeeperId = await getCurrentBeekeeperId();
     const beekeeper = await updateBeekeeper(beekeeperId, { name, region, phone });
     return NextResponse.json({ beekeeper });
   } catch (err) {

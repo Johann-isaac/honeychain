@@ -6,10 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatDateTime } from "@/lib/utils";
 import type { Alert, Hive } from "@/types";
 
-const severityMeta: Record<Alert["severity"], { icon: typeof Info; variant: "destructive" | "warning" | "success"; ring: string }> = {
-  CRITICAL: { icon: AlertTriangle, variant: "destructive", ring: "border-l-destructive" },
-  WARNING: { icon: AlertTriangle, variant: "warning", ring: "border-l-warning" },
-  INFO: { icon: CheckCircle2, variant: "success", ring: "border-l-success" },
+const severityMeta: Record<
+  Alert["severity"],
+  { icon: typeof Info; variant: "destructive" | "warning" | "success"; ring: string; label: string }
+> = {
+  CRITICAL: { icon: AlertTriangle, variant: "destructive", ring: "border-l-destructive", label: "Critical" },
+  WARNING: { icon: AlertTriangle, variant: "warning", ring: "border-l-warning", label: "Warning" },
+  INFO: { icon: CheckCircle2, variant: "success", ring: "border-l-success", label: "Info" },
 };
 
 export function AlertItem({
@@ -39,17 +42,22 @@ export function AlertItem({
   }
 
   return (
-    <div className={cn("flex items-start gap-3 rounded-2xl border border-border border-l-4 bg-card p-4 card-shadow", meta.ring)}>
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded-2xl border border-border border-l-4 bg-card p-4 card-shadow transition-colors",
+        meta.ring
+      )}
+    >
       <Icon className={cn("mt-0.5 size-4.5 shrink-0", alert.severity === "CRITICAL" ? "text-destructive" : alert.severity === "WARNING" ? "text-warning" : "text-success")} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold">{alert.title}</p>
           {hive && <Badge variant="muted">{hive.hiveCode}</Badge>}
-          <Badge variant={meta.variant}>{alert.severity}</Badge>
+          <Badge variant={meta.variant}>{meta.label}</Badge>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">{alert.message}</p>
-        <p className="mt-1.5 text-xs font-medium text-foreground/80">Recommended: {alert.recommendation}</p>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">{formatDateTime(alert.timestamp)}</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{alert.message}</p>
+        <p className="mt-2 text-xs font-medium text-foreground/80">Recommended: {alert.recommendation}</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">{formatDateTime(alert.timestamp)}</p>
       </div>
       {!readOnly && (
         <button

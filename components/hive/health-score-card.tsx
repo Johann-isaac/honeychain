@@ -5,9 +5,9 @@ import { Progress } from "@/components/ui/progress";
 import type { AiHealthResult } from "@/types";
 
 const riskMeta = {
-  LOW: { label: "Healthy", variant: "success" as const, dot: "🟢" },
-  MODERATE: { label: "Monitor", variant: "warning" as const, dot: "🟡" },
-  ELEVATED: { label: "Needs Attention", variant: "destructive" as const, dot: "🔴" },
+  LOW: { label: "Healthy", variant: "success" as const, dot: "bg-success" },
+  MODERATE: { label: "Monitor", variant: "warning" as const, dot: "bg-warning" },
+  ELEVATED: { label: "Needs attention", variant: "destructive" as const, dot: "bg-destructive" },
 };
 
 const breakdownLabels: Record<keyof AiHealthResult["breakdown"], string> = {
@@ -30,12 +30,12 @@ export function HealthScoreCard({ health }: { health: AiHealthResult }) {
       <CardContent>
         <div className="flex items-end justify-between">
           <div>
-            <p className="font-display text-4xl">
+            <p className="font-display text-4xl font-semibold tabular-nums">
               {health.healthScore}
-              <span className="text-lg text-muted-foreground"> / 100</span>
+              <span className="text-lg font-normal text-muted-foreground"> / 100</span>
             </p>
-            <Badge variant={risk.variant} className="mt-2">
-              {risk.dot} {risk.label}
+            <Badge variant={risk.variant} className="mt-2.5">
+              <span className={`size-1.5 rounded-full ${risk.dot}`} /> {risk.label}
             </Badge>
           </div>
         </div>

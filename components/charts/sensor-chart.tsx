@@ -27,23 +27,34 @@ export function SensorChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <Chart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#8884" vertical={false} />
-        <XAxis dataKey={xKey} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={30} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+        <XAxis
+          dataKey={xKey}
+          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+          tickLine={false}
+          axisLine={false}
+          minTickGap={30}
+        />
         <YAxis
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
           tickLine={false}
           axisLine={false}
           width={38}
           domain={["dataMin - 2", "dataMax + 2"]}
         />
         <Tooltip
+          cursor={{ stroke: "var(--color-border)", strokeWidth: 1 }}
+          // Themed through tokens rather than fixed hex values, so the
+          // tooltip stays readable in dark mode.
           contentStyle={{
             borderRadius: 12,
-            border: "1px solid #e8dcc4",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-md)",
             fontSize: 12,
             background: "var(--color-card)",
             color: "var(--color-foreground)",
           }}
+          labelStyle={{ color: "var(--color-muted-foreground)", marginBottom: 4 }}
         />
         {series.map((s) =>
           type === "area" ? (

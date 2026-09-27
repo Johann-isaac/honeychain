@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FormMessage } from "@/components/ui/form-message";
 import type { Beekeeper } from "@/types";
 
 export function EditProfileForm({ beekeeper }: { beekeeper: Beekeeper }) {
@@ -56,12 +58,16 @@ export function EditProfileForm({ beekeeper }: { beekeeper: Beekeeper }) {
             Phone
             <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input mt-1" placeholder="Optional" />
           </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <FormMessage>{error}</FormMessage>}
           <div className="flex items-center gap-3">
             <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Saving…" : "Save Changes"}
+              {saving ? "Saving…" : "Save changes"}
             </Button>
-            {saved && <p className="text-xs text-success">Saved</p>}
+            {saved && (
+              <p role="status" className="flex items-center gap-1.5 text-xs font-medium text-success">
+                <CheckCircle2 className="size-3.5" /> Changes saved
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

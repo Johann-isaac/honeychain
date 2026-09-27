@@ -2,76 +2,97 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+   Design tokens
+   Neutrals are warm-but-restrained (a faint honey cast, not cream), so the
+   amber brand color stays the only saturated thing on screen and reads as
+   deliberate rather than decorative. Every token below has a dark-mode
+   counterpart in `.dark` — add tokens to both blocks or theming breaks.
+--------------------------------------------------------------------------- */
 :root {
-  --background: #fffaf0;
-  --foreground: #241d14;
+  --background: #fcfbf8;
+  --foreground: #1c1814;
 
   --card: #ffffff;
-  --card-foreground: #241d14;
+  --card-foreground: #1c1814;
 
-  --muted: #f4ecdc;
-  --muted-foreground: #6b5f4d;
+  --muted: #f4f1ea;
+  --muted-foreground: #6d6558;
 
-  --border: #e8dcc4;
-  --input: #e8dcc4;
+  --border: #e7e2d8;
+  --input: #e7e2d8;
   --ring: #d99a2b;
 
   --primary: #d99a2b;
-  --primary-foreground: #241d14;
-  --primary-dark: #b87c1a;
+  --primary-foreground: #231a0b;
+  --primary-dark: #a56c12;
 
-  --secondary: #4f7942;
+  --secondary: #40663a;
   --secondary-foreground: #ffffff;
 
-  --accent: #fbe8bf;
+  --accent: #fbf0d8;
   --accent-foreground: #6b4a12;
 
-  --success: #3f8b4c;
-  --warning: #d98c1f;
-  --destructive: #c9432f;
+  --success: #2f7d43;
+  --warning: #b5761a;
+  --destructive: #c0392b;
 
-  --charcoal: #241d14;
-  --cream: #fffaf0;
-  --honey: #e8a33d;
-  --honey-dark: #b87c1a;
-  --nature: #4f7942;
+  --charcoal: #1c1814;
+  --cream: #fcfbf8;
+  --honey: #d99a2b;
+  --honey-dark: #a56c12;
+  --nature: #40663a;
 
-  --radius: 0.9rem;
+  --radius: 0.75rem;
+
+  /* Elevation. Tinted with the foreground hue so shadows sit in the palette
+     instead of turning cards grey. */
+  --shadow-xs: 0 1px 2px rgba(28, 24, 20, 0.05);
+  --shadow-sm: 0 1px 2px rgba(28, 24, 20, 0.04), 0 2px 8px -4px rgba(28, 24, 20, 0.08);
+  --shadow-md: 0 1px 3px rgba(28, 24, 20, 0.05), 0 12px 28px -16px rgba(28, 24, 20, 0.22);
+  --shadow-lg: 0 2px 6px rgba(28, 24, 20, 0.06), 0 24px 48px -24px rgba(28, 24, 20, 0.28);
 }
 
 .dark {
-  --background: #17130e;
-  --foreground: #f6ecd9;
+  --background: #12100d;
+  --foreground: #f4f0e8;
 
-  --card: #221b13;
-  --card-foreground: #f6ecd9;
+  --card: #1a1713;
+  --card-foreground: #f4f0e8;
 
-  --muted: #2a2117;
-  --muted-foreground: #b8a98c;
+  --muted: #221e18;
+  --muted-foreground: #a79d8d;
 
-  --border: #382c1e;
-  --input: #382c1e;
+  --border: #2e2821;
+  --input: #2e2821;
   --ring: #e8a33d;
 
   --primary: #e8a33d;
-  --primary-foreground: #17130e;
-  --primary-dark: #f2b705;
+  --primary-foreground: #1a1206;
+  --primary-dark: #f2bb5e;
 
   --secondary: #6b8e4e;
   --secondary-foreground: #101a0c;
 
-  --accent: #3a2c14;
+  --accent: #2c2112;
   --accent-foreground: #f2c877;
 
   --success: #5cb86b;
   --warning: #e8a33d;
   --destructive: #e0604a;
 
-  --charcoal: #17130e;
-  --cream: #f6ecd9;
+  --charcoal: #12100d;
+  --cream: #f4f0e8;
   --honey: #e8a33d;
-  --honey-dark: #f2b705;
+  --honey-dark: #f2bb5e;
   --nature: #6b8e4e;
+
+  /* Shadows read as noise on dark surfaces, so they mostly become a hairline
+     of light at the top edge plus a soft, very dark ambient pool. */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 8px -4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.5), 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.55), 0 24px 48px -24px rgba(0, 0, 0, 0.8);
 }
 
 @theme inline {
@@ -100,8 +121,10 @@
   --color-honey-dark: var(--honey-dark);
   --color-nature: var(--nature);
   --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 0.25rem);
-  --radius-sm: calc(var(--radius) - 0.4rem);
+  --radius-md: calc(var(--radius) - 0.2rem);
+  --radius-sm: calc(var(--radius) - 0.35rem);
+  --radius-xl: calc(var(--radius) + 0.35rem);
+  --radius-2xl: calc(var(--radius) + 0.65rem);
   --font-sans: var(--font-inter);
   --font-display: var(--font-fraunces);
 }
@@ -110,31 +133,103 @@
   * {
     border-color: var(--color-border);
   }
+
+  html {
+    scroll-behavior: smooth;
+    /* Anchor links land below the sticky site header instead of under it. */
+    scroll-padding-top: 5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Display type is set tighter and optically heavier than the body face. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-honey) 30%, transparent);
+    color: var(--color-foreground);
+  }
+
+  /* One focus treatment for the whole app: a ring in the brand color, offset
+     from the element so it stays visible on both light and dark surfaces. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--color-muted-foreground) 30%, transparent);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--color-muted-foreground) 50%, transparent);
+    background-clip: content-box;
   }
 }
 
 @layer utilities {
   .font-display {
     font-family: var(--font-display), ui-serif, Georgia, serif;
+    letter-spacing: -0.015em;
   }
 
+  /* Faint hexagon-ish dot field. Deliberately low contrast — it should read
+     as paper texture at arm's length, not as a pattern. */
   .bg-honeycomb {
-    background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--color-honey) 18%, transparent) 1px, transparent 0);
-    background-size: 22px 22px;
+    background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--color-honey) 14%, transparent) 1px, transparent 0);
+    background-size: 24px 24px;
   }
 
   .glass {
-    background: color-mix(in oklab, var(--color-card) 72%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: color-mix(in oklab, var(--color-card) 78%, transparent);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
   }
 
   .card-shadow {
-    box-shadow: 0 1px 2px rgba(36, 29, 20, 0.04), 0 8px 24px -12px rgba(36, 29, 20, 0.16);
+    box-shadow: var(--shadow-sm);
+  }
+  .shadow-elevated {
+    box-shadow: var(--shadow-md);
+  }
+  .shadow-floating {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Shared hover affordance for anything clickable that is a whole card. */
+  .hover-lift {
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1),
+      border-color 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in oklab, var(--color-honey) 45%, var(--color-border));
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -143,21 +238,59 @@
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: var(--color-border);
+    border: 0;
     border-radius: 999px;
   }
 
+}
+
+/* These live in `components`, not `utilities`, on purpose: Tailwind emits its
+   own utilities into the `utilities` layer, and anything declared there after
+   the import wins over them. Keeping `.input` a component means a caller can
+   still say `pl-10` for a leading icon, or `h-9`, and have it apply. */
+@layer components {
   .input {
     width: 100%;
-    height: 2.5rem;
-    border-radius: 0.7rem;
+    height: 2.625rem;
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-card);
     padding: 0 0.85rem;
     font-size: 0.875rem;
-    outline: none;
+    color: var(--color-foreground);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input::placeholder {
+    color: color-mix(in oklab, var(--color-muted-foreground) 75%, transparent);
+  }
+  .input:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--color-muted-foreground) 35%, var(--color-border));
   }
   .input:focus {
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-primary) 40%, transparent);
+    outline: none;
+    border-color: var(--color-ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 22%, transparent);
+  }
+  .input:disabled {
+    background: var(--color-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  /* Form label + field pairs use these two so spacing never drifts between
+     the hive, batch, auth and profile forms. */
+  .field-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+  }
+  .field-hint {
+    margin-top: 0.3rem;
+    display: block;
+    font-size: 0.6875rem;
+    line-height: 1.45;
+    color: color-mix(in oklab, var(--color-muted-foreground) 85%, transparent);
   }
 }
 
@@ -173,7 +306,7 @@
 }
 
 .animate-fade-up {
-  animation: hc-fade-up 0.6s ease both;
+  animation: hc-fade-up 0.6s cubic-bezier(0.2, 0, 0, 1) both;
 }
 
 @keyframes hc-pulse-ring {
@@ -199,4 +332,42 @@
   stroke-dasharray: 6 6;
   stroke-dashoffset: 240;
   animation: hc-flow 6s linear infinite;
+}
+
+@keyframes hc-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Skeleton block for loading.tsx files. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-muted);
+  border-radius: var(--radius-md);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-card) 55%, transparent), transparent);
+  animation: hc-shimmer 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hover-lift:hover {
+    transform: none;
+  }
 }

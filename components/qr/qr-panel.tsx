@@ -35,7 +35,7 @@ export function QrPanel({ batchId, batchCode }: { batchId: string; batchCode: st
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Batch Verification QR</CardTitle>
+        <CardTitle>Batch verification QR</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-4">
         {dataUrl ? (
@@ -64,8 +64,8 @@ export function QrPanel({ batchId, batchCode }: { batchId: string; batchCode: st
             <Printer className="size-3.5" /> Print QR
           </Button>
           <Button asChild size="sm">
-            <Link href={`/verify/${batchCode}`} target="_blank">
-              <ExternalLink className="size-3.5" /> View Consumer Page
+            <Link href={`/verify/${batchCode}`} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="size-3.5" /> Open public page
             </Link>
           </Button>
         </div>

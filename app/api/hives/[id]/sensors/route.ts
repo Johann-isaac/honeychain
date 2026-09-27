@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSensorReadings } from "@/lib/db";
+import { getHiveById, getSensorReadings } from "@/lib/db";
+import { getCurrentBeekeeperId } from "@/lib/auth";
 
 const RANGE_HOURS: Record<string, number | undefined> = {
   "1h": 1,
@@ -11,6 +12,10 @@ const RANGE_HOURS: Record<string, number | undefined> = {
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const beekeeperId = await getCurrentBeekeeperId();
+  const hive = await getHiveById(id);
+  if (!hive || hive.beekeeperId !== beekeeperId) return NextResponse.json({ error: "Hive not found" }, { status: 404 });
+
   const range = (request.nextUrl.searchParams.get("range") ?? "24h").toLowerCase();
   const hours = RANGE_HOURS[range] ?? 24;
   return NextResponse.json({ readings: await getSensorReadings(id, hours) });

@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDefaultBeekeeperId, getAlertsForBeekeeper, getBeekeeperById, getBeekeeperDashboard, getHivesByBeekeeper } from "@/lib/db";
+import { NextResponse } from "next/server";
+import { getAlertsForBeekeeper, getBeekeeperById, getBeekeeperDashboard, getHivesByBeekeeper } from "@/lib/db";
+import { getCurrentBeekeeperId } from "@/lib/auth";
 
-export async function GET(request: NextRequest) {
-  const beekeeperId = request.nextUrl.searchParams.get("beekeeperId") ?? (await getDefaultBeekeeperId());
+export async function GET() {
+  const beekeeperId = await getCurrentBeekeeperId();
   const beekeeper = await getBeekeeperById(beekeeperId);
   if (!beekeeper) return NextResponse.json({ error: "Beekeeper not found" }, { status: 404 });
 

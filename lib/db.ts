@@ -6,17 +6,20 @@
 // them to the camelCase domain types in types/index.ts so nothing else in
 // the app needs to know the storage layer changed.
 //
-// There is no authentication system yet, so "the current beekeeper" is a
-// single bootstrapped row (see getDefaultBeekeeperId) rather than
-// something derived from a logged-in session. Every hive a beekeeper adds
-// from the UI is real: there is no seed/demo data left in this file.
+// "The current beekeeper" is always derived from the logged-in session
+// (see getCurrentBeekeeperId in lib/auth.ts) — every page and API route
+// under /beekeeper and /api/beekeeper resolves it that way rather than
+// trusting a client-supplied id. Every hive a beekeeper adds from the UI
+// is real: there is no seed/demo data left in this file.
 
 import "server-only";
 import { getSupabase } from "@/lib/supabase/server";
 import { computeHiveHealth, deriveHiveAlerts, predictYield } from "@/lib/aiHealthService";
 import { blockchainService } from "@/lib/blockchainService";
 import { daysUntil } from "@/lib/utils";
-import type { Alert, Beekeeper, BlockchainRecord, Hive, HoneyBatch, SensorReading, YieldForecast } from "@/types";
+import { hashPassword, verifyPassword, generateDeviceSecret, hashDeviceSecret, verifyDeviceSecret } from "@/lib/auth";
+import { getSnapshotUrl } from "@/lib/snapshotService";
+import type { Alert, Beekeeper, BlockchainRecord, Hive, HiveAiInsight, HoneyBatch, SensorReading, YieldForecast } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Row → domain mappers
@@ -52,6 +55,10 @@ function mapHive(row: Row): Hive {
     status: row.status,
     lastInspection: row.last_inspection,
     nextInspection: row.next_inspection,
+    aiInsight: row.ai_insight ?? undefined,
+    aiInsightGeneratedAt: row.ai_insight_generated_at ?? undefined,
+    latestSnapshotUrl: row.latest_snapshot_path ? getSnapshotUrl(row.latest_snapshot_path) : undefined,
+    latestSnapshotAt: row.latest_snapshot_at ?? undefined,
   };
 }
 
@@ -124,43 +131,58 @@ function assertNoError<T>(data: T | null, error: { message: string } | null, con
 // Beekeepers
 // ---------------------------------------------------------------------------
 
-// There is no login yet, so the app operates as a single beekeeper account,
-// auto-created on first use. Override its identity with DEFAULT_BEEKEEPER_*
-// env vars, or edit it later from /beekeeper/profile.
-async function getOrCreateDefaultBeekeeper(): Promise<Beekeeper> {
-  const db = getSupabase();
-  const code = process.env.DEFAULT_BEEKEEPER_CODE ?? "BK-0001";
-
-  // Atomic insert-if-missing (ON CONFLICT DO NOTHING) — this function runs
-  // on every page load, so it must be race-safe under concurrent requests
-  // AND must never overwrite a beekeeper's profile edits on a later call.
-  // A plain "select, then insert if missing" is not atomic: two concurrent
-  // requests can both see "missing" and both try to insert, and the loser
-  // gets a duplicate-key error instead of the existing row.
-  const { error: upsertError } = await db.from("beekeepers").upsert(
-    {
-      beekeeper_code: code,
-      name: process.env.DEFAULT_BEEKEEPER_NAME ?? "Beekeeper",
-      email: process.env.DEFAULT_BEEKEEPER_EMAIL ?? "beekeeper@honeychain.demo",
-      region: process.env.DEFAULT_BEEKEEPER_REGION ?? "Unknown Region",
-      registration_status: "VERIFIED",
-    },
-    { onConflict: "beekeeper_code", ignoreDuplicates: true }
-  );
-  if (upsertError) throw new Error(`Unable to create default beekeeper: ${upsertError.message}`);
-
-  const { data, error } = await db.from("beekeepers").select("*").eq("beekeeper_code", code).single();
-  return mapBeekeeper(assertNoError(data, error, "Unable to load default beekeeper"));
-}
-
-export async function getDefaultBeekeeperId(): Promise<string> {
-  const beekeeper = await getOrCreateDefaultBeekeeper();
-  return beekeeper.id;
-}
-
 export async function getBeekeeperById(id: string): Promise<Beekeeper | undefined> {
   const { data } = await getSupabase().from("beekeepers").select("*").eq("id", id).maybeSingle();
   return data ? mapBeekeeper(data) : undefined;
+}
+
+export interface CreateBeekeeperAccountInput {
+  username: string;
+  password: string;
+  name: string;
+  email: string;
+  region: string;
+}
+
+// Generates the next sequential beekeeper_code (BK-0001, BK-0002, ...).
+export async function createBeekeeperAccount(input: CreateBeekeeperAccountInput): Promise<Beekeeper> {
+  const db = getSupabase();
+  const { count } = await db.from("beekeepers").select("*", { count: "exact", head: true });
+  const beekeeperCode = `BK-${String((count ?? 0) + 1).padStart(4, "0")}`;
+  const passwordHash = await hashPassword(input.password);
+
+  const { data, error } = await db
+    .from("beekeepers")
+    .insert({
+      beekeeper_code: beekeeperCode,
+      name: input.name,
+      email: input.email,
+      region: input.region,
+      registration_status: "VERIFIED",
+      username: input.username,
+      password_hash: passwordHash,
+    })
+    .select()
+    .single();
+
+  if (error?.code === "23505") {
+    throw new Error(error.message.includes("username") ? "That username is already taken." : "That email is already registered.");
+  }
+  return mapBeekeeper(assertNoError(data, error, "Unable to create account"));
+}
+
+// Checks a login attempt against the stored password hash. Never returns
+// the hash itself — only the mapped, password-free Beekeeper on success.
+export async function verifyBeekeeperCredentials(username: string, password: string): Promise<Beekeeper | undefined> {
+  const { data } = await getSupabase()
+    .from("beekeepers")
+    .select("*")
+    .eq("username", username)
+    .maybeSingle();
+  if (!data || !data.password_hash) return undefined;
+
+  const valid = await verifyPassword(password, data.password_hash);
+  return valid ? mapBeekeeper(data) : undefined;
 }
 
 export interface UpdateBeekeeperInput {
@@ -213,14 +235,20 @@ export interface CreateHiveInput {
 }
 
 // Generates the hive_code the beekeeper then flashes into that hive's
-// ESP32 firmware as HIVE_ID.
-export async function createHive(input: CreateHiveInput): Promise<Hive> {
+// ESP32 firmware as HIVE_ID, plus a one-time device secret (also flashed
+// into the firmware, as DEVICE_SECRET) that /api/hive-data checks on
+// every reading. Only the secret's bcrypt hash is stored — the plaintext
+// is returned here so the UI can show it to the beekeeper exactly once.
+export async function createHive(input: CreateHiveInput): Promise<{ hive: Hive; deviceSecret: string }> {
   const db = getSupabase();
   const { count } = await db.from("hives").select("*", { count: "exact", head: true });
   const hiveCode = `HIVE-${String((count ?? 0) + 1).padStart(3, "0")}`;
 
   const now = new Date();
   const nextInspection = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+
+  const deviceSecret = generateDeviceSecret();
+  const deviceSecretHash = await hashDeviceSecret(deviceSecret);
 
   const { data, error } = await db
     .from("hives")
@@ -236,11 +264,48 @@ export async function createHive(input: CreateHiveInput): Promise<Hive> {
       status: "HEALTHY",
       last_inspection: now.toISOString(),
       next_inspection: nextInspection.toISOString(),
+      device_secret_hash: deviceSecretHash,
     })
     .select()
     .single();
 
-  return mapHive(assertNoError(data, error, "Unable to create hive"));
+  return { hive: mapHive(assertNoError(data, error, "Unable to create hive")), deviceSecret };
+}
+
+// Used by POST /api/hive-data: verifies the ESP32's Bearer token against
+// the specific hive's stored device secret hash. Returns the hive only on
+// a match, so callers can't distinguish "wrong hive code" from "wrong
+// secret" by response shape (both come back undefined).
+export async function verifyHiveDeviceSecret(hiveCode: string, secret: string): Promise<Hive | undefined> {
+  const { data } = await getSupabase().from("hives").select("*").eq("hive_code", hiveCode).maybeSingle();
+  if (!data || !data.device_secret_hash) return undefined;
+
+  const valid = await verifyDeviceSecret(secret, data.device_secret_hash);
+  return valid ? mapHive(data) : undefined;
+}
+
+// Records that a new camera snapshot was stored for this hive. The image
+// bytes themselves already live in Supabase Storage (lib/snapshotService.ts)
+// by the time this runs — this just points the hive row at it.
+export async function updateHiveSnapshot(hiveId: string, storagePath: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from("hives")
+    .update({ latest_snapshot_path: storagePath, latest_snapshot_at: new Date().toISOString() })
+    .eq("id", hiveId);
+  if (error) throw new Error(`Unable to update hive snapshot metadata: ${error.message}`);
+}
+
+// Persists the result of an on-demand AI analysis (lib/aiPredictionService.ts)
+// so it survives a page refresh without re-calling the API.
+export async function saveHiveAiInsight(hiveId: string, insight: HiveAiInsight): Promise<Hive> {
+  const { data, error } = await getSupabase()
+    .from("hives")
+    .update({ ai_insight: insight, ai_insight_generated_at: new Date().toISOString() })
+    .eq("id", hiveId)
+    .select()
+    .single();
+
+  return mapHive(assertNoError(data, error, "Unable to save AI insight"));
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +411,18 @@ export async function getAlertsForBeekeeper(beekeeperId: string): Promise<Alert[
   return (data ?? []).map(mapAlert);
 }
 
+// Verifies the alert's hive belongs to this beekeeper before dismissing it.
+export async function dismissAlertForBeekeeper(alertId: string, beekeeperId: string): Promise<boolean> {
+  const db = getSupabase();
+  const { data: alert } = await db.from("alerts").select("hive_id").eq("id", alertId).maybeSingle();
+  if (!alert) return false;
+
+  const hive = await getHiveById(alert.hive_id);
+  if (!hive || hive.beekeeperId !== beekeeperId) return false;
+
+  return dismissAlert(alertId);
+}
+
 export async function dismissAlert(alertId: string): Promise<boolean> {
   const { data } = await getSupabase().from("alerts").update({ dismissed: true }).eq("id", alertId).select("id").maybeSingle();
   return !!data;
@@ -420,11 +497,14 @@ export async function createBatch(input: CreateBatchInput): Promise<HoneyBatch> 
       storage_temperature: input.storageTemperature,
       storage_location: input.storageLocation,
       status: "DRAFT",
+      // No fabricated placeholders: a hive with no sensor reading yet
+      // gets null here, never a plausible-looking made-up number that
+      // could be mistaken for a real measurement.
       env_snapshot: {
-        temperature: latest?.temperature ?? 34,
-        humidity: latest?.humidity ?? 60,
-        hiveWeight: latest?.weight ?? 40,
-        aiHealthScore: health?.healthScore ?? 80,
+        temperature: latest?.temperature ?? null,
+        humidity: latest?.humidity ?? null,
+        hiveWeight: latest?.weight ?? null,
+        aiHealthScore: health?.healthScore ?? 0,
       },
     })
     .select()
@@ -586,6 +666,8 @@ export async function getPublicVerification(batchCode: string) {
       name: hive.name,
       region: hive.location,
       harvestConditions: { ...batch.envSnapshot, beeActivity: beeActivityLabel },
+      snapshotUrl: hive.latestSnapshotUrl ?? null,
+      snapshotAt: hive.latestSnapshotAt ?? null,
     },
     beekeeper: {
       beekeeperCode: beekeeper.beekeeperCode,

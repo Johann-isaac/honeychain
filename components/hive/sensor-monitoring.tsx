@@ -28,6 +28,11 @@ function toChartData(readings: SensorReading[], range: string) {
   }));
 }
 
+// How often to poll for new readings while this card is open. The ESP32
+// sends roughly every 10-30s depending on firmware config, so this is
+// frequent enough to feel live without hammering the API.
+const POLL_INTERVAL_MS = 15000;
+
 export function SensorMonitoring({ hiveId, initialReadings }: { hiveId: string; initialReadings: SensorReading[] }) {
   const [range, setRange] = React.useState<(typeof RANGES)[number]["key"]>("24h");
   const [readings, setReadings] = React.useState<SensorReading[]>(initialReadings);
@@ -35,16 +40,24 @@ export function SensorMonitoring({ hiveId, initialReadings }: { hiveId: string; 
 
   React.useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for the fetch kicked off below
-    setLoading(true);
-    fetch(`/api/hives/${hiveId}/sensors?range=${range}`)
-      .then((res) => res.json())
-      .then((data) => {
+
+    async function load(showLoading: boolean) {
+      if (showLoading) setLoading(true);
+      try {
+        const res = await fetch(`/api/hives/${hiveId}/sensors?range=${range}`);
+        const data = await res.json();
         if (!cancelled) setReadings(data.readings ?? []);
-      })
-      .finally(() => !cancelled && setLoading(false));
+      } finally {
+        if (!cancelled && showLoading) setLoading(false);
+      }
+    }
+
+    load(true); // show the "Updating…" state on first load / range change
+    const interval = setInterval(() => load(false), POLL_INTERVAL_MS); // silent background refresh
+
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, [hiveId, range]);
 
@@ -83,19 +96,19 @@ export function SensorMonitoring({ hiveId, initialReadings }: { hiveId: string; 
 
           <TabsContent value="temperature">
             <p className="mb-2 text-[11px] text-muted-foreground">DHT22 sensor</p>
-            <SensorChart data={chartData} xKey="t" series={[{ key: "temperature", label: "Temperature", color: "#d99a2b", unit: "°C" }]} />
+            <SensorChart data={chartData} xKey="t" series={[{ key: "temperature", label: "Temperature", color: "var(--color-honey)", unit: "°C" }]} />
           </TabsContent>
           <TabsContent value="humidity">
             <p className="mb-2 text-[11px] text-muted-foreground">DHT22 sensor</p>
-            <SensorChart data={chartData} xKey="t" series={[{ key: "humidity", label: "Humidity", color: "#4f7942", unit: "%" }]} />
+            <SensorChart data={chartData} xKey="t" series={[{ key: "humidity", label: "Humidity", color: "var(--color-nature)", unit: "%" }]} />
           </TabsContent>
           <TabsContent value="weight">
             <p className="mb-2 text-[11px] text-muted-foreground">Load cell + HX711</p>
-            <SensorChart data={chartData} xKey="t" series={[{ key: "weight", label: "Weight", color: "#8a5a2b", unit: "kg" }]} />
+            <SensorChart data={chartData} xKey="t" series={[{ key: "weight", label: "Weight", color: "var(--color-primary-dark)", unit: "kg" }]} />
           </TabsContent>
           <TabsContent value="sound">
             <p className="mb-2 text-[11px] text-muted-foreground">Analog microphone</p>
-            <SensorChart type="area" data={chartData} xKey="t" series={[{ key: "soundLevel", label: "Sound Level", color: "#b0472e", unit: "raw" }]} />
+            <SensorChart type="area" data={chartData} xKey="t" series={[{ key: "soundLevel", label: "Sound Level", color: "var(--color-destructive)", unit: "raw" }]} />
           </TabsContent>
           <TabsContent value="vibration">
             <p className="mb-2 text-[11px] text-muted-foreground">Digital vibration sensor</p>

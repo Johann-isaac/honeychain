@@ -37,41 +37,51 @@ export function HiveGrid({ entries }: { entries: HiveGridEntry[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <label htmlFor="hive-search" className="sr-only">
+            Search hives
+          </label>
           <input
+            id="hive-search"
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search hives..."
-            className="h-10 w-full rounded-full border border-border bg-card pl-9 pr-4 text-sm outline-none ring-primary/40 focus:ring-2"
+            placeholder="Search by name, ID or location…"
+            className="input pl-9"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-full bg-muted p-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-xl bg-muted p-1" role="group" aria-label="Filter by status">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setStatus(f.key)}
+                aria-pressed={status === f.key}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  status === f.key ? "bg-card shadow-sm" : "text-muted-foreground"
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  status === f.key ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {f.label}
               </button>
             ))}
           </div>
+          <label htmlFor="hive-sort" className="sr-only">
+            Sort hives
+          </label>
           <select
+            id="hive-sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as "name" | "yield")}
-            className="h-9 rounded-full border border-border bg-card px-3 text-xs outline-none"
+            className="input h-9 w-auto pr-8 text-xs"
           >
             <option value="name">Sort: Hive ID</option>
-            <option value="yield">Sort: Est. Yield</option>
+            <option value="yield">Sort: Est. yield</option>
           </select>
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center text-sm text-muted-foreground">
           No hives match your filters.
         </p>
       ) : (

@@ -21,7 +21,6 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // chance to paste in credentials.
 
 declare global {
-  // eslint-disable-next-line no-var
   var __honeychainSupabase: SupabaseClient | undefined;
 }
 

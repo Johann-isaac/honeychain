@@ -28,11 +28,11 @@ export function KpiCard({
   };
 
   return (
-    <Card>
+    <Card className="transition-colors hover:border-muted-foreground/25">
       <CardContent className="flex items-start justify-between gap-3 p-5">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="mt-1.5 font-display text-2xl">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="mt-2 font-display text-2xl font-semibold tabular-nums">
             <AnimatedCounter value={value} suffix={suffix} decimals={decimals} />
           </p>
           {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}

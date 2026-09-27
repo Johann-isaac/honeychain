@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FormMessage } from "@/components/ui/form-message";
 import type { Hive } from "@/types";
 
 const HONEY_TYPES = ["Multifloral Honey", "Eucalyptus Honey", "Wildflower Honey", "Forest Honey", "Nilgiri Honey"];
@@ -33,7 +34,7 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
     storageTemperature: "23",
     storageLocation: "",
   });
-  const [snapshot, setSnapshot] = React.useState<{ temperature: number; humidity: number; weight: number; healthScore: number } | null>(null);
+  const [snapshot, setSnapshot] = React.useState<{ temperature: number | null; humidity: number | null; weight: number | null; healthScore: number } | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [createdBatch, setCreatedBatch] = React.useState<{ id: string; batchCode: string } | null>(null);
@@ -48,9 +49,9 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
       .then((data) => {
         if (cancelled) return;
         setSnapshot({
-          temperature: data.latestReading?.temperature ?? 0,
-          humidity: data.latestReading?.humidity ?? 0,
-          weight: data.latestReading?.weight ?? 0,
+          temperature: data.latestReading?.temperature ?? null,
+          humidity: data.latestReading?.humidity ?? null,
+          weight: data.latestReading?.weight ?? null,
           healthScore: data.health?.healthScore ?? 0,
         });
       });
@@ -147,7 +148,7 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
             </Field>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <FormMessage>{error}</FormMessage>}
 
           <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
             {submitting ? "Registering on blockchain…" : "Create Honey Batch"}
@@ -163,9 +164,9 @@ export function CreateBatchForm({ hives }: { hives: Hive[] }) {
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-xs text-muted-foreground">Automatically captured from {selectedHive?.hiveCode ?? "the selected hive"}&apos;s latest sensor reading.</p>
-          <SnapshotRow label="Temperature" value={snapshot ? `${snapshot.temperature}°C` : "—"} />
-          <SnapshotRow label="Humidity" value={snapshot ? `${snapshot.humidity}%` : "—"} />
-          <SnapshotRow label="Hive Weight" value={snapshot ? `${snapshot.weight} kg` : "—"} />
+          <SnapshotRow label="Temperature" value={snapshot?.temperature != null ? `${snapshot.temperature}°C` : "No data yet"} />
+          <SnapshotRow label="Humidity" value={snapshot?.humidity != null ? `${snapshot.humidity}%` : "No data yet"} />
+          <SnapshotRow label="Hive Weight" value={snapshot?.weight != null ? `${snapshot.weight} kg` : "No data yet"} />
           <SnapshotRow label="AI Health Score" value={snapshot ? `${snapshot.healthScore} / 100` : "—"} />
         </CardContent>
       </Card>

@@ -23,12 +23,12 @@ export function HiveCard({
   const status = statusMeta[hive.status];
 
   return (
-    <Link href={`/beekeeper/hives/${hive.id}`}>
-      <Card className="group h-full transition-transform hover:-translate-y-0.5 hover:border-honey/50">
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <div>
+    <Link href={`/beekeeper/hives/${hive.id}`} className="block">
+      <Card className="hover-lift h-full">
+        <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+          <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">{hive.hiveCode}</p>
-            <h3 className="text-base font-semibold">{hive.name}</h3>
+            <h3 className="truncate text-base font-semibold">{hive.name}</h3>
           </div>
           <Badge variant={status.variant}>
             <span className={`size-1.5 rounded-full ${status.dot}`} /> {status.label}
