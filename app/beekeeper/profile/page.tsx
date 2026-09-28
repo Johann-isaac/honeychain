@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { EditProfileForm } from "@/components/beekeeper/edit-profile-form";
+import { ChangePasswordForm } from "@/components/beekeeper/change-password-form";
 import { formatDate } from "@/lib/utils";
 import { getBeekeeperById, getHivesByBeekeeper } from "@/lib/db";
 import { getCurrentBeekeeperId } from "@/lib/auth";
@@ -81,6 +82,10 @@ export default async function ProfilePage() {
 
       <div className="mt-6">
         <EditProfileForm beekeeper={beekeeper} />
+      </div>
+
+      <div className="mt-6">
+        <ChangePasswordForm />
       </div>
 
       <p className="mt-6 rounded-xl border border-border bg-muted/60 p-4 text-xs leading-relaxed text-muted-foreground">

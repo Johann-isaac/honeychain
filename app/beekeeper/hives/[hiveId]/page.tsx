@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, MapPin, CalendarCheck, Activity } from "lucide-react";
+import { ArrowLeft, Crown, MapPin, CalendarCheck, Activity, WifiOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SensorMonitoring } from "@/components/hive/sensor-monitoring";
@@ -9,8 +9,8 @@ import { HealthScoreCard } from "@/components/hive/health-score-card";
 import { YieldPredictionCard } from "@/components/hive/yield-prediction-card";
 import { AiInsightCard } from "@/components/hive/ai-insight-card";
 import { CameraPreviewCard } from "@/components/hive/camera-preview-card";
-import { formatDate } from "@/lib/utils";
-import { getHiveHealth, getHiveById, getHiveYieldPrediction, getSensorReadings } from "@/lib/db";
+import { formatDate, formatRelativeTime, isReadingStale } from "@/lib/utils";
+import { getHiveHealth, getHiveById, getHiveYieldPrediction, getLatestSensorReading, getSensorReadings } from "@/lib/db";
 import { getCurrentBeekeeperId } from "@/lib/auth";
 
 // Reads live mutable state (lib/db.ts), so this must be rendered per request rather than frozen at build time.
@@ -33,6 +33,11 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
     getHiveHealth(hiveId),
     getHiveYieldPrediction(hiveId),
   ]);
+
+  // Deliberately NOT readings[readings.length - 1]: that list is windowed to
+  // the last 24h, so a hive silent for longer than that would look like it
+  // had simply never reported. This query has no time filter.
+  const latestReading = await getLatestSensorReading(hiveId);
 
   return (
     <div className="space-y-6">
@@ -69,6 +74,19 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
           />
         </CardContent>
       </Card>
+
+      {latestReading && isReadingStale(latestReading.timestamp) && (
+        <div className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+          <WifiOff className="mt-0.5 size-5 shrink-0 text-destructive" />
+          <div>
+            <p className="text-sm font-semibold text-destructive">This hive has stopped reporting</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              The last reading arrived {formatRelativeTime(latestReading.timestamp)}. Everything below is from
+              before then and does not describe the hive now. Check the node&apos;s power, battery and WiFi.
+            </p>
+          </div>
+        </div>
+      )}
 
       <SensorMonitoring hiveId={hiveId} initialReadings={readings} />
 

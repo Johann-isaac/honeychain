@@ -171,6 +171,30 @@ export async function createBeekeeperAccount(input: CreateBeekeeperAccountInput)
   return mapBeekeeper(assertNoError(data, error, "Unable to create account"));
 }
 
+// Changes a beekeeper's password, but only on proof of the current one.
+// Returns false when the current password is wrong, so the caller can answer
+// without leaking whether the account exists.
+export async function changeBeekeeperPassword(
+  beekeeperId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<boolean> {
+  const db = getSupabase();
+  const { data } = await db.from("beekeepers").select("password_hash").eq("id", beekeeperId).maybeSingle();
+  if (!data?.password_hash) return false;
+
+  const valid = await verifyPassword(currentPassword, data.password_hash);
+  if (!valid) return false;
+
+  const { error } = await db
+    .from("beekeepers")
+    .update({ password_hash: await hashPassword(newPassword) })
+    .eq("id", beekeeperId);
+  if (error) throw new Error(`Unable to change password: ${error.message}`);
+
+  return true;
+}
+
 // Checks a login attempt against the stored password hash. Never returns
 // the hash itself — only the mapped, password-free Beekeeper on success.
 export async function verifyBeekeeperCredentials(username: string, password: string): Promise<Beekeeper | undefined> {
@@ -383,6 +407,16 @@ export async function getHiveYieldPrediction(hiveId: string) {
 async function syncHiveAlerts(hiveId: string): Promise<void> {
   const db = getSupabase();
   const readings = await getSensorReadings(hiveId, 24);
+
+  // A hive that has been silent longer than the 24h window returns nothing
+  // here, which would suppress the very alert that matters most. Fall back
+  // to the newest reading whatever its age so deriveHiveAlerts can see that
+  // the hive has gone quiet.
+  if (readings.length === 0) {
+    const latest = await getLatestSensorReading(hiveId);
+    if (latest) readings.push(latest);
+  }
+
   const derived = deriveHiveAlerts(readings);
   if (derived.length === 0) return;
 

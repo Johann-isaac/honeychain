@@ -1,4 +1,5 @@
 import type { AiHealthResult, AlertSeverity, Hive, HoneyBatch, SensorReading, YieldPrediction } from "@/types";
+import { formatRelativeTime, isReadingStale } from "@/lib/utils";
 
 // aiHealthService — deterministic, decision-support calculations only.
 //
@@ -160,7 +161,26 @@ export interface DerivedAlert {
 export function deriveHiveAlerts(readings: SensorReading[]): DerivedAlert[] {
   const recent = readings.slice(-24);
   const latest = recent[recent.length - 1] ?? readings[readings.length - 1];
+
+  // A hive that has never reported is not the same as one that has gone
+  // quiet — there is nothing to be alarmed about yet.
   if (!latest) return [];
+
+  // Every threshold below reads `latest` as if it described the hive right
+  // now. When the node has stopped reporting that is false, and scoring a
+  // week-old reading produces confident, wrong advice — so this returns
+  // early with the one alert that is actually true.
+  if (isReadingStale(latest.timestamp)) {
+    return [
+      {
+        severity: "CRITICAL",
+        title: "Hive not reporting",
+        message: `No sensor data has arrived for ${formatRelativeTime(latest.timestamp).replace(" ago", "")}. Readings shown for this hive are from before then and do not describe its current state.`,
+        recommendation:
+          "Check the node's power supply, battery charge and WiFi signal. Readings resume on their own once it reconnects.",
+      },
+    ];
+  }
 
   const alerts: DerivedAlert[] = [];
 

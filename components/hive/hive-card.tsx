@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle, Droplets, MapPin, Mic, Scale, Thermometer, CalendarClock } from "lucide-react";
+import { AlertTriangle, Droplets, MapPin, Mic, Scale, Thermometer, CalendarClock, WifiOff } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { daysUntil } from "@/lib/utils";
+import { cn, daysUntil, formatRelativeTime, isReadingStale } from "@/lib/utils";
 import type { Hive, SensorReading } from "@/types";
 
 const statusMeta: Record<Hive["status"], { label: string; dot: string; variant: "success" | "warning" | "destructive" }> = {
@@ -22,17 +22,28 @@ export function HiveCard({
 }) {
   const status = statusMeta[hive.status];
 
+  // A hive that has gone quiet takes over the badge entirely. Showing
+  // "Healthy" next to week-old numbers is the misleading case this exists
+  // to prevent — the health status simply isn't known any more.
+  const offline = reading ? isReadingStale(reading.timestamp) : false;
+
   return (
     <Link href={`/beekeeper/hives/${hive.id}`} className="block">
-      <Card className="hover-lift h-full">
+      <Card className={cn("hover-lift h-full", offline && "border-destructive/40")}>
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">{hive.hiveCode}</p>
             <h3 className="truncate text-base font-semibold">{hive.name}</h3>
           </div>
-          <Badge variant={status.variant}>
-            <span className={`size-1.5 rounded-full ${status.dot}`} /> {status.label}
-          </Badge>
+          {offline && reading ? (
+            <Badge variant="destructive">
+              <WifiOff className="size-3" /> Offline
+            </Badge>
+          ) : (
+            <Badge variant={status.variant}>
+              <span className={`size-1.5 rounded-full ${status.dot}`} /> {status.label}
+            </Badge>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -59,6 +70,12 @@ export function HiveCard({
           {reading?.vibration && (
             <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
               <AlertTriangle className="size-3.5" /> Vibration detected
+            </p>
+          )}
+          {offline && reading && (
+            <p className="flex items-center gap-1.5 rounded-lg bg-destructive/10 px-2.5 py-2 text-xs font-medium text-destructive">
+              <WifiOff className="size-3.5 shrink-0" />
+              Last reported {formatRelativeTime(reading.timestamp)}
             </p>
           )}
           <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
