@@ -62,6 +62,25 @@ export function isReadingStale(iso: string, now: number = Date.now()): boolean {
   return minutesSince(iso, now) >= OFFLINE_AFTER_MINUTES;
 }
 
+/**
+ * Whether a hive is actually telling us anything.
+ *
+ * Three states, not two. A hive that has never reported is not the same as
+ * one that has gone quiet: the first is usually a node that was never set up
+ * (no firmware flashed, wrong Hive ID, wrong device secret), the second is a
+ * working node that has stopped. Neither is "Healthy" — that word describes
+ * the colony, and with no data we know nothing about the colony.
+ */
+export type HiveConnection = "LIVE" | "OFFLINE" | "NEVER_REPORTED";
+
+export function getHiveConnection(
+  latestReadingIso: string | undefined,
+  now: number = Date.now()
+): HiveConnection {
+  if (!latestReadingIso) return "NEVER_REPORTED";
+  return isReadingStale(latestReadingIso, now) ? "OFFLINE" : "LIVE";
+}
+
 /** Compact "how long ago" for badges and captions: 4m, 3h, 6d. */
 export function formatRelativeTime(iso: string, now: number = Date.now()): string {
   const mins = minutesSince(iso, now);

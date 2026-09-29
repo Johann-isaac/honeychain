@@ -16,7 +16,7 @@ import "server-only";
 import { getSupabase } from "@/lib/supabase/server";
 import { computeHiveHealth, deriveHiveAlerts, predictYield } from "@/lib/aiHealthService";
 import { blockchainService } from "@/lib/blockchainService";
-import { daysUntil } from "@/lib/utils";
+import { daysUntil, getHiveConnection } from "@/lib/utils";
 import { hashPassword, verifyPassword, generateDeviceSecret, hashDeviceSecret, verifyDeviceSecret } from "@/lib/auth";
 import { getSnapshotUrl } from "@/lib/snapshotService";
 import type { Alert, Beekeeper, BlockchainRecord, Hive, HiveAiInsight, HoneyBatch, SensorReading, YieldForecast } from "@/types";
@@ -605,8 +605,19 @@ export async function getPlatformStats() {
 
 export async function getBeekeeperDashboard(beekeeperId: string) {
   const hiveList = await getHivesByBeekeeper(beekeeperId);
-  const healthyHives = hiveList.filter((h) => h.status === "HEALTHY").length;
-  const attentionHives = hiveList.length - healthyHives;
+
+  // "Healthy" is a claim about the colony, so it can only be made about
+  // hives that are actually reporting. Counting a hive whose node was never
+  // set up as healthy was the dashboard asserting something it had no basis
+  // for — hives.status is a stored column that nothing keeps current.
+  const connections = await Promise.all(
+    hiveList.map(async (h) => getHiveConnection((await getLatestSensorReading(h.id))?.timestamp))
+  );
+  const live = hiveList.filter((_, i) => connections[i] === "LIVE");
+
+  const healthyHives = live.filter((h) => h.status === "HEALTHY").length;
+  const attentionHives = live.length - healthyHives;
+  const notReportingHives = hiveList.length - live.length;
 
   const predictions = await Promise.all(hiveList.map(async (h) => (await getHiveYieldPrediction(h.id))?.predictedYieldKg ?? 0));
   const estimatedYieldKg = Math.round(predictions.reduce((a, b) => a + b, 0) * 10) / 10;
@@ -620,6 +631,7 @@ export async function getBeekeeperDashboard(beekeeperId: string) {
     totalHives: hiveList.length,
     healthyHives,
     attentionHives,
+    notReportingHives,
     estimatedYieldKg,
     nextHarvestDays: Math.max(1, nextInspectionDays),
     totalBatches,

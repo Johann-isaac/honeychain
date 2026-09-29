@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { changeBeekeeperPassword } from "@/lib/db";
-import { getCurrentBeekeeperId } from "@/lib/auth";
+import { getCurrentBeekeeperId, UnauthenticatedError } from "@/lib/auth";
 import { ValidationError, requireString } from "@/lib/validation";
 
 // POST /api/auth/change-password — for a signed-in beekeeper who knows
@@ -33,6 +33,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    // proxy.ts does not cover /api/auth/*, so this route is gated by
+    // getCurrentBeekeeperId() throwing. That has to surface as 401, not the
+    // generic 400 — a client cannot tell "you are signed out" from "your
+    // password was wrong" otherwise.
+    if (err instanceof UnauthenticatedError) {
+      return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+    }
     if (err instanceof ValidationError) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }

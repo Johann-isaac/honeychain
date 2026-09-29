@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, MapPin, CalendarCheck, Activity, WifiOff } from "lucide-react";
+import { ArrowLeft, Crown, MapPin, CalendarCheck, Activity, PlugZap, WifiOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SensorMonitoring } from "@/components/hive/sensor-monitoring";
@@ -9,7 +9,7 @@ import { HealthScoreCard } from "@/components/hive/health-score-card";
 import { YieldPredictionCard } from "@/components/hive/yield-prediction-card";
 import { AiInsightCard } from "@/components/hive/ai-insight-card";
 import { CameraPreviewCard } from "@/components/hive/camera-preview-card";
-import { formatDate, formatRelativeTime, isReadingStale } from "@/lib/utils";
+import { formatDate, formatRelativeTime, getHiveConnection } from "@/lib/utils";
 import { getHiveHealth, getHiveById, getHiveYieldPrediction, getLatestSensorReading, getSensorReadings } from "@/lib/db";
 import { getCurrentBeekeeperId } from "@/lib/auth";
 
@@ -38,6 +38,7 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
   // the last 24h, so a hive silent for longer than that would look like it
   // had simply never reported. This query has no time filter.
   const latestReading = await getLatestSensorReading(hiveId);
+  const connection = getHiveConnection(latestReading?.timestamp);
 
   return (
     <div className="space-y-6">
@@ -75,7 +76,22 @@ export default async function HiveDetailPage({ params }: PageProps<"/beekeeper/h
         </CardContent>
       </Card>
 
-      {latestReading && isReadingStale(latestReading.timestamp) && (
+      {connection === "NEVER_REPORTED" && (
+        <div className="flex items-start gap-3 rounded-2xl border border-border bg-muted/50 p-4">
+          <PlugZap className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-semibold">No sensor data yet</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              Nothing has ever reported for this hive, so its condition is unknown — the readings below are
+              empty rather than good. Flash a node with Hive ID{" "}
+              <span className="font-mono font-medium text-foreground">{hive.hiveCode}</span> and this hive&apos;s
+              device secret to start collecting data.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {connection === "OFFLINE" && latestReading && (
         <div className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
           <WifiOff className="mt-0.5 size-5 shrink-0 text-destructive" />
           <div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Hexagon, ShieldCheck, AlertTriangle, Droplet, CalendarClock, Package, ArrowRight, Plus, BellOff } from "lucide-react";
+import { Hexagon, ShieldCheck, AlertTriangle, Droplet, CalendarClock, Package, ArrowRight, Plus, BellOff, PlugZap } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { HiveCard } from "@/components/hive/hive-card";
 import { AlertItem } from "@/components/hive/alert-item";
@@ -61,10 +61,17 @@ export default async function BeekeeperDashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
         <KpiCard label="Total Hives" value={kpis.totalHives} icon={Hexagon} />
         <KpiCard label="Healthy Hives" value={kpis.healthyHives} icon={ShieldCheck} tone="success" />
         <KpiCard label="Attention Required" value={kpis.attentionHives} icon={AlertTriangle} tone="warning" />
+        <KpiCard
+          label="Not Reporting"
+          value={kpis.notReportingHives}
+          icon={PlugZap}
+          tone={kpis.notReportingHives > 0 ? "destructive" : "default"}
+          hint="No recent sensor data"
+        />
         <KpiCard label="Est. Honey Yield" value={kpis.estimatedYieldKg} suffix=" kg" decimals={1} icon={Droplet} />
         <KpiCard label="Next Harvest" value={kpis.nextHarvestDays} suffix=" days" icon={CalendarClock} />
         <KpiCard label="Honey Batches" value={kpis.totalBatches} icon={Package} />

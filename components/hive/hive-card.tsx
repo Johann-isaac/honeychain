@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AlertTriangle, Droplets, MapPin, Mic, Scale, Thermometer, CalendarClock, WifiOff } from "lucide-react";
+import { AlertTriangle, Droplets, MapPin, Mic, PlugZap, Scale, Thermometer, CalendarClock, WifiOff } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn, daysUntil, formatRelativeTime, isReadingStale } from "@/lib/utils";
+import { cn, daysUntil, formatRelativeTime, getHiveConnection } from "@/lib/utils";
 import type { Hive, SensorReading } from "@/types";
 
 const statusMeta: Record<Hive["status"], { label: string; dot: string; variant: "success" | "warning" | "destructive" }> = {
@@ -22,22 +22,26 @@ export function HiveCard({
 }) {
   const status = statusMeta[hive.status];
 
-  // A hive that has gone quiet takes over the badge entirely. Showing
-  // "Healthy" next to week-old numbers is the misleading case this exists
-  // to prevent — the health status simply isn't known any more.
-  const offline = reading ? isReadingStale(reading.timestamp) : false;
+  // Connection state overrides the colony status badge entirely. "Healthy"
+  // describes the colony, and with no data — or only stale data — we know
+  // nothing about the colony, so claiming it is healthy is simply false.
+  const connection = getHiveConnection(reading?.timestamp);
 
   return (
     <Link href={`/beekeeper/hives/${hive.id}`} className="block">
-      <Card className={cn("hover-lift h-full", offline && "border-destructive/40")}>
+      <Card className={cn("hover-lift h-full", connection === "OFFLINE" && "border-destructive/40")}>
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">{hive.hiveCode}</p>
             <h3 className="truncate text-base font-semibold">{hive.name}</h3>
           </div>
-          {offline && reading ? (
+          {connection === "OFFLINE" ? (
             <Badge variant="destructive">
               <WifiOff className="size-3" /> Offline
+            </Badge>
+          ) : connection === "NEVER_REPORTED" ? (
+            <Badge variant="muted">
+              <PlugZap className="size-3" /> No data yet
             </Badge>
           ) : (
             <Badge variant={status.variant}>
@@ -72,10 +76,17 @@ export function HiveCard({
               <AlertTriangle className="size-3.5" /> Vibration detected
             </p>
           )}
-          {offline && reading && (
+          {connection === "OFFLINE" && reading && (
             <p className="flex items-center gap-1.5 rounded-lg bg-destructive/10 px-2.5 py-2 text-xs font-medium text-destructive">
               <WifiOff className="size-3.5 shrink-0" />
-              Last reported {formatRelativeTime(reading.timestamp)}
+              Stopped reporting — last seen {formatRelativeTime(reading.timestamp)}
+            </p>
+          )}
+          {connection === "NEVER_REPORTED" && (
+            <p className="flex items-start gap-1.5 rounded-lg bg-muted px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">
+              <PlugZap className="mt-0.5 size-3.5 shrink-0" />
+              No sensor node has reported for this hive yet. Flash the firmware with this Hive ID and its device
+              secret.
             </p>
           )}
           <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
